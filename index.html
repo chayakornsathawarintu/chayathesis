@@ -1620,6 +1620,7 @@ document.querySelectorAll('.fade-up').forEach(el => observer.observe(el));
   let nodes       = [];
   let strands     = [];
   let intCells    = [];   // hatch regions (clipped to strand hull)
+  let vol3D       = null; // 3D volumetric scene data
 
   // ── Timing ~16s loop ────────────────────────────────────────────────────
   const DUR = {
@@ -1630,12 +1631,14 @@ document.querySelectorAll('.fade-up').forEach(el => observer.observe(el));
     curves:    2800,
     intersect: 1800,
     hold:      2400,
-    fade:      1200,
+    volume:    5000,  // 3D volumetric diagram
+    fade:      1800,
   };
 
   let phase = 'gc', phaseStart = performance.now();
   let gcProg = 0, gmProg = 0, gfProg = 0;
   let nodeReveal = 0, curveProg = 0, intReveal = 0, sceneAlpha = 1;
+  let volumeProg = 0; // 0→1 raises the 3D diagram
 
   // Lynn: global time for animate-form drift
   let globalT = 0;
@@ -1729,7 +1732,10 @@ document.querySelectorAll('.fade-up').forEach(el => observer.observe(el));
     strands.forEach(st => st.pts.forEach(p => p.connections = (p.connections || 0) + 1));
 
     // --- Hatch regions ---
-    intCells = computeHatchRegions(strands);
+    intCells = computeHatchRegions(strands, STEP0, W, H);
+
+    // --- 3D volumetric scene ---
+    vol3D = build3DScene(strands, intCells, gridLayers, STEP0, W, H);
   }
 
   // ── Build closed bezier strands, every node covered by at least one ─────
@@ -1864,36 +1870,97 @@ document.querySelectorAll('.fade-up').forEach(el => observer.observe(el));
   // call uses this polyline — hatch lines are physically impossible to escape it.
   const HATCH_ANGLES = [25, -45, 70, 0, -20, 55, -70, 10];
 
-  function computeHatchRegions(strandList) {
+  function computeHatchRegions(strandList, gridStep, W, H) {
     const regions = [];
-    strandList.forEach((strand, si) => {
-      if (strand.segs.length < 3) return; // closed loop needs ≥3 segments
+    const offX = (W % gridStep) / 2, offY = (H % gridStep) / 2;
 
-      // Randomly leave ~25-30% of shapes unhatched for a less uniform look
+    function segsCross(p1x,p1y,p2x,p2y,p3x,p3y,p4x,p4y) {
+      const d1x=p2x-p1x, d1y=p2y-p1y, d2x=p4x-p3x, d2y=p4y-p3y;
+      const denom = d1x*d2y - d1y*d2x;
+      if (Math.abs(denom) < 1e-10) return false;
+      const t = ((p3x-p1x)*d2y - (p3y-p1y)*d2x) / denom;
+      const u = ((p3x-p1x)*d1y - (p3y-p1y)*d1x) / denom;
+      return t >= 0 && t <= 1 && u >= 0 && u <= 1;
+    }
+
+    function segIntersectsRect(ax,ay,bx,by,rx,ry,rw,rh) {
+      if (ax>=rx&&ax<=rx+rw&&ay>=ry&&ay<=ry+rh) return true;
+      if (bx>=rx&&bx<=rx+rw&&by>=ry&&by<=ry+rh) return true;
+      return segsCross(ax,ay,bx,by, rx,ry,rx+rw,ry) ||
+             segsCross(ax,ay,bx,by, rx+rw,ry,rx+rw,ry+rh) ||
+             segsCross(ax,ay,bx,by, rx+rw,ry+rh,rx,ry+rh) ||
+             segsCross(ax,ay,bx,by, rx,ry+rh,rx,ry);
+    }
+
+    // Ray-cast point-in-polygon — returns true if (px,py) is inside poly
+    function pointInPoly(px, py, poly) {
+      let inside = false;
+      for (let i = 0, j = poly.length-1; i < poly.length; j = i++) {
+        const xi=poly[i].x, yi=poly[i].y, xj=poly[j].x, yj=poly[j].y;
+        if (((yi>py)!==(yj>py)) && px < (xj-xi)*(py-yi)/(yj-yi)+xi)
+          inside = !inside;
+      }
+      return inside;
+    }
+
+    strandList.forEach((strand, si) => {
+      if (strand.segs.length < 3) return;
       if (Math.random() < 0.27) return;
+
       const boundary = [];
       strand.segs.forEach(seg => {
-        for (let s = 0; s < 32; s++) // 32 steps per seg, no duplicate endpoints
+        for (let s = 0; s < 32; s++)
           boundary.push(cubicPt(seg.p0, seg.cp1, seg.cp2, seg.p1, s / 32));
       });
       if (boundary.length < 3) return;
 
-      // Centroid and maxR for glow gradient
-      let cx = 0, cy = 0;
-      boundary.forEach(p => { cx += p.x; cy += p.y; });
-      cx /= boundary.length; cy /= boundary.length;
-      let maxR = 0;
-      boundary.forEach(p => { const d = Math.hypot(p.x-cx, p.y-cy); if (d > maxR) maxR = d; });
+      let minX=Infinity, minY=Infinity, maxX=-Infinity, maxY=-Infinity;
+      for (const p of boundary) {
+        if (p.x<minX) minX=p.x; if (p.x>maxX) maxX=p.x;
+        if (p.y<minY) minY=p.y; if (p.y>maxY) maxY=p.y;
+      }
 
-      const spacingBySize = { small: 5, medium: 8, large: 13 };
+      const colMin = Math.floor((minX-offX)/gridStep);
+      const colMax = Math.floor((maxX-offX)/gridStep);
+      const rowMin = Math.floor((minY-offY)/gridStep);
+      const rowMax = Math.floor((maxY-offY)/gridStep);
+
+      const touchedCells = [];
+      for (let col=colMin; col<=colMax; col++) {
+        for (let row=rowMin; row<=rowMax; row++) {
+          const rx=offX+col*gridStep, ry=offY+row*gridStep;
+
+          // Must be crossed by the boundary line
+          let crossed = false;
+          for (let k=0; k<boundary.length && !crossed; k++) {
+            const a=boundary[k], b=boundary[(k+1)%boundary.length];
+            if (segIntersectsRect(a.x,a.y,b.x,b.y,rx,ry,gridStep,gridStep))
+              crossed = true;
+          }
+          if (!crossed) continue;
+
+          // Exclude cells whose centre is strictly inside the closed shape —
+          // those are interior cells, not cells the curve stroke passes through
+          const ccx = rx + gridStep/2, ccy = ry + gridStep/2;
+          if (pointInPoly(ccx, ccy, boundary)) continue;
+
+          touchedCells.push({ x:rx, y:ry, w:gridStep, h:gridStep });
+        }
+      }
+
+      let cx=0, cy=0;
+      boundary.forEach(p=>{cx+=p.x;cy+=p.y;});
+      cx/=boundary.length; cy/=boundary.length;
+      let maxR=0;
+      boundary.forEach(p=>{const d=Math.hypot(p.x-cx,p.y-cy);if(d>maxR)maxR=d;});
+
+      const spacingBySize={small:5,medium:8,large:13};
       regions.push({
-        boundary, // closed polyline tracing the exact bezier curve
+        boundary, touchedCells,
         cx, cy, maxR,
-        angle:   HATCH_ANGLES[si % HATCH_ANGLES.length],
-        spacing: (spacingBySize[strand.sizeClass] || 8) + (si % 2) * 2,
-        alpha:   0,
-        target:  0.52 + Math.random() * 0.18,
-        glowAlpha: 0,
+        angle:   HATCH_ANGLES[si%HATCH_ANGLES.length],
+        spacing: (spacingBySize[strand.sizeClass]||8)+(si%2)*2,
+        alpha:0, target:0.52+Math.random()*0.18, glowAlpha:0,
       });
     });
     return regions;
@@ -2020,19 +2087,18 @@ document.querySelectorAll('.fade-up').forEach(el => observer.observe(el));
 
       const bnd = region.boundary;
       if (!bnd || bnd.length < 3) continue;
-      const { cx, cy, maxR } = region;
+      const { cx, cy, maxR, touchedCells } = region;
       const halfSpan = maxR * 1.05;
       const angleRad = region.angle * Math.PI / 180;
       const cos = Math.cos(angleRad), sin = Math.sin(angleRad);
 
-      // ── Hatch lines clipped to the exact closed bezier boundary ──
+      // ── Pass 1: hatch lines clipped to the closed bezier boundary ──
       ctx.save();
       ctx.beginPath();
       ctx.moveTo(bnd[0].x, bnd[0].y);
       for (let k = 1; k < bnd.length; k++) ctx.lineTo(bnd[k].x, bnd[k].y);
       ctx.closePath();
       ctx.clip();
-
       ctx.strokeStyle = C.hatch + region.alpha + ')';
       ctx.lineWidth = 0.6;
       const nLines = Math.ceil((halfSpan * 2) / region.spacing) + 2;
@@ -2045,6 +2111,34 @@ document.querySelectorAll('.fade-up').forEach(el => observer.observe(el));
         ctx.stroke();
       }
       ctx.restore();
+
+      // ── Pass 2: same hatch lines clipped to each touched grid cell ──
+      // Each cell is clipped independently so cells stay discrete.
+      if (touchedCells && touchedCells.length) {
+        const cellAlpha = region.alpha * 0.7; // slightly softer than the shape fill
+        for (const cell of touchedCells) {
+          // Compute hatch span from this cell's centre for correct alignment
+          const ccx = cell.x + cell.w / 2;
+          const ccy = cell.y + cell.h / 2;
+          const cellSpan = Math.hypot(cell.w, cell.h);
+          const cn = Math.ceil((cellSpan * 2) / region.spacing) + 2;
+          ctx.save();
+          ctx.beginPath();
+          ctx.rect(cell.x, cell.y, cell.w, cell.h);
+          ctx.clip();
+          ctx.strokeStyle = C.hatch + cellAlpha + ')';
+          ctx.lineWidth = 0.6;
+          for (let s = -cn; s <= cn; s++) {
+            const ox = ccx + (-sin) * s * region.spacing;
+            const oy = ccy + ( cos) * s * region.spacing;
+            ctx.beginPath();
+            ctx.moveTo(ox + cos * -cellSpan, oy + sin * -cellSpan);
+            ctx.lineTo(ox + cos *  cellSpan, oy + sin *  cellSpan);
+            ctx.stroke();
+          }
+          ctx.restore();
+        }
+      }
 
       // ── White glow inside the closed boundary ──
       const glowTarget = region.alpha * 0.50;
@@ -2064,6 +2158,253 @@ document.querySelectorAll('.fade-up').forEach(el => observer.observe(el));
         ctx.restore();
       }
     }
+  }
+
+  // ── 3D Volumetric diagram ─────────────────────────────────────────────────
+  // Isometric projection: x→right, y→into screen, z→up
+  // Canvas origin is centre of the hero canvas.
+  // iso(x, y, z) maps world coords to screen coords.
+
+  function build3DScene(strandList, hatchList, gLayers, step, W, H) {
+    // Grid beams: every coarse grid line becomes a linear volume (beam/slab)
+    // extruded upward. Height varies by position for rhythm.
+    const beams = [];
+    const beamH = step * 0.18; // thin slab height
+    gLayers[0].forEach((line, li) => {
+      const isV = line.x1 === line.x2;
+      const thick = step * 0.06;
+      const hOff = beamH * (0.4 + 0.6 * ((li * 0.618) % 1)); // golden ratio spread
+      beams.push({ line, isV, thick, h: hOff });
+    });
+
+    // Roof canopies: each strand becomes a swept arch connecting its nodes.
+    // We sample the boundary and lift it into a thin shell that peaks at the centroid.
+    const canopies = [];
+    strandList.forEach((strand, si) => {
+      if (strand.segs.length < 3) return;
+      const pts = [];
+      strand.segs.forEach(seg => {
+        for (let s = 0; s < 20; s++)
+          pts.push(cubicPt(seg.p0, seg.cp1, seg.cp2, seg.p1, s / 20));
+      });
+      let cx = 0, cy = 0;
+      pts.forEach(p => { cx += p.x; cy += p.y; });
+      cx /= pts.length; cy /= pts.length;
+      let maxR = 0;
+      pts.forEach(p => { const d = Math.hypot(p.x-cx, p.y-cy); if (d > maxR) maxR = d; });
+      // Peak height scales with size class and position
+      const peakH = maxR * (strand.sizeClass === 'large' ? 0.55 : strand.sizeClass === 'medium' ? 0.38 : 0.22);
+      canopies.push({ pts, cx, cy, maxR, peakH, colorIdx: strand.colorIdx });
+    });
+
+    // Masses: hatched regions become solid extruded volumes (buildings/programs)
+    // Height differs per region to produce programmatic variation.
+    const masses = [];
+    const massHeights = [0.28, 0.45, 0.60, 0.35, 0.72, 0.50, 0.40, 0.65, 0.30, 0.55, 0.42, 0.68];
+    hatchList.forEach((region, ri) => {
+      if (!region.boundary || region.boundary.length < 3) return;
+      const hFrac = massHeights[ri % massHeights.length] + rnd(-0.05, 0.05);
+      // Height based on maxR so bigger shapes are taller
+      const massH = region.maxR * hFrac * 0.9;
+      masses.push({ boundary: region.boundary, cx: region.cx, cy: region.cy, massH, ri });
+    });
+
+    return { beams, canopies, masses, W, H, step };
+  }
+
+  function drawVolume(prog) {
+    if (!vol3D) return;
+    const { beams, canopies, masses, W, H, step } = vol3D;
+    const t = ease(Math.min(1, prog));
+
+    // ── Single camera projection shared by every draw call ────────────────
+    // At t=0 → identity (exact top-down, pixel = world XY).
+    // At t=1 → oblique axonometric: X right, Y down, Z up-left.
+    //
+    // The camera tilts around the canvas centre so the scene stays centred.
+    // ONLY the z-direction appears and grows; x and y stay put.
+    //
+    //   screen.x = wx  +  wz * (-cos30 * t)
+    //   screen.y = wy  +  wz * (-sin30 * t)   ← negative = up on screen
+    //
+    // Ground-plane points (wz=0): screen = (wx, wy). Always. Never move.
+
+    const zx = -0.866 * t;
+    const zy = -0.500 * t;
+    function P(wx, wy, wz) {
+      return { x: wx + wz * zx, y: wy + wz * zy };
+    }
+
+    // ─── 1. GRID — every line becomes a thin raised slab ─────────────────
+    // Coarse lines extrude to varying heights; mid/fine stay flat.
+    [[1, C.gridCoarse, 1.6, true], [1, C.gridMid, 0.9, false], [1, C.gridFine, 0.5, false]]
+      .forEach(([prog, col, lw, extrude], li) => {
+        gridLayers[li].forEach((l, li2) => {
+          const isV  = l.x1 === l.x2;
+          const bh   = extrude ? beams.find(b => b.line === l)?.h * t ?? 0 : 0;
+          const thick = extrude ? step * 0.055 : 0;
+          const hw    = thick / 2;
+
+          if (extrude && bh > 0.5) {
+            // Draw top edge of the extruded beam
+            const hw2 = hw;
+            if (isV) {
+              const x = l.x1;
+              // Two top-edge lines (front face top)
+              const tl = P(x - hw2, l.y1, bh), tr = P(x + hw2, l.y1, bh);
+              const bl2 = P(x - hw2, l.y2, bh), br2 = P(x + hw2, l.y2, bh);
+              ctx.beginPath();
+              ctx.moveTo(tl.x, tl.y); ctx.lineTo(bl2.x, bl2.y);
+              ctx.moveTo(tr.x, tr.y); ctx.lineTo(br2.x, br2.y);
+              ctx.strokeStyle = `rgba(240,237,232,${(0.12 + t*0.10).toFixed(3)})`;
+              ctx.lineWidth = lw * 0.6; ctx.stroke();
+              // Vertical edges at endpoints
+              [[x - hw2, l.y1],[x + hw2, l.y1],[x - hw2, l.y2],[x + hw2, l.y2]].forEach(([ex, ey]) => {
+                const bot = P(ex, ey, 0), top = P(ex, ey, bh);
+                ctx.beginPath(); ctx.moveTo(bot.x, bot.y); ctx.lineTo(top.x, top.y);
+                ctx.strokeStyle = `rgba(240,237,232,${(0.08 + t*0.08).toFixed(2)})`;
+                ctx.lineWidth = 0.3; ctx.stroke();
+              });
+            } else {
+              const y = l.y1;
+              const tl = P(l.x1, y - hw2, bh), tr = P(l.x2, y - hw2, bh);
+              const bl2 = P(l.x1, y + hw2, bh), br2 = P(l.x2, y + hw2, bh);
+              ctx.beginPath();
+              ctx.moveTo(tl.x, tl.y); ctx.lineTo(tr.x, tr.y);
+              ctx.moveTo(bl2.x, bl2.y); ctx.lineTo(br2.x, br2.y);
+              ctx.strokeStyle = `rgba(240,237,232,${(0.12 + t*0.10).toFixed(3)})`;
+              ctx.lineWidth = lw * 0.6; ctx.stroke();
+              [[l.x1, y - hw2],[l.x2, y - hw2],[l.x1, y + hw2],[l.x2, y + hw2]].forEach(([ex, ey]) => {
+                const bot = P(ex, ey, 0), top = P(ex, ey, bh);
+                ctx.beginPath(); ctx.moveTo(bot.x, bot.y); ctx.lineTo(top.x, top.y);
+                ctx.strokeStyle = `rgba(240,237,232,${(0.08 + t*0.08).toFixed(2)})`;
+                ctx.lineWidth = 0.3; ctx.stroke();
+              });
+            }
+          }
+
+          // Ground-level line (z=0 — same screen position as 2D)
+          const a = P(l.x1, l.y1, 0), b = P(l.x2, l.y2, 0);
+          ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y);
+          ctx.strokeStyle = col; ctx.lineWidth = lw; ctx.stroke();
+        });
+      });
+
+    // ─── 2. HATCHES → extruded masses ────────────────────────────────────
+    const sortedMasses = masses.slice().sort((a, b) => (b.cx + b.cy) - (a.cx + a.cy));
+    sortedMasses.forEach(({ boundary, cx, cy, massH }) => {
+      const mh = massH * t;
+      const bnd = boundary;
+
+      // Hatch lines on top face (replace flat hatching)
+      ctx.save();
+      const topPoly = bnd.map(p => P(p.x, p.y, mh));
+      ctx.beginPath();
+      topPoly.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
+      ctx.closePath();
+      ctx.clip();
+      // Simple horizontal hatch on top face
+      const spacing = 8;
+      let mnY = Infinity, mxY = -Infinity;
+      topPoly.forEach(p => { if (p.y < mnY) mnY = p.y; if (p.y > mxY) mxY = p.y; });
+      ctx.strokeStyle = `rgba(240,237,232,${(0.18 + t * 0.10).toFixed(3)})`;
+      ctx.lineWidth = 0.5;
+      for (let hy = mnY; hy <= mxY; hy += spacing) {
+        let mnX = Infinity, mxX = -Infinity;
+        topPoly.forEach((p, i) => {
+          const q = topPoly[(i+1) % topPoly.length];
+          if ((p.y <= hy && q.y > hy) || (q.y <= hy && p.y > hy)) {
+            const xi = p.x + (hy - p.y) / (q.y - p.y) * (q.x - p.x);
+            if (xi < mnX) mnX = xi; if (xi > mxX) mxX = xi;
+          }
+        });
+        if (mnX < mxX) { ctx.beginPath(); ctx.moveTo(mnX, hy); ctx.lineTo(mxX, hy); ctx.stroke(); }
+      }
+      ctx.restore();
+
+      // Side faces (front-facing only)
+      for (let k = 0; k < bnd.length; k++) {
+        const a = bnd[k], b = bnd[(k + 1) % bnd.length];
+        const nx = b.y - a.y, ny = -(b.x - a.x);
+        if (t > 0.04 && nx * zx + ny * zy >= 0) continue;
+        const bl = P(a.x, a.y, 0),  br = P(b.x, b.y, 0);
+        const tl = P(a.x, a.y, mh), tr = P(b.x, b.y, mh);
+        ctx.beginPath();
+        ctx.moveTo(bl.x, bl.y); ctx.lineTo(tl.x, tl.y);
+        ctx.lineTo(tr.x, tr.y); ctx.lineTo(br.x, br.y);
+        ctx.closePath();
+        const shade = 0.04 + 0.07 * Math.abs(nx / (Math.hypot(nx, ny) || 1));
+        ctx.fillStyle   = `rgba(240,237,232,${shade.toFixed(3)})`;
+        ctx.fill();
+        ctx.strokeStyle = `rgba(240,237,232,${(0.18 + t * 0.10).toFixed(3)})`;
+        ctx.lineWidth   = 0.4; ctx.stroke();
+      }
+
+      // Top face outline
+      ctx.beginPath();
+      topPoly.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
+      ctx.closePath();
+      ctx.strokeStyle = `rgba(240,237,232,${(0.30 + t * 0.10).toFixed(3)})`;
+      ctx.lineWidth   = 0.6; ctx.stroke();
+    });
+
+    // ─── 3. STRANDS → canopy roofs ────────────────────────────────────────
+    const sortedCanopies = canopies.slice().sort((a, b) => (b.cx + b.cy) - (a.cx + a.cy));
+    sortedCanopies.forEach(({ pts, cx, cy, peakH }) => {
+      const ph   = peakH * t;
+      const peak = P(cx, cy, ph);
+
+      // Ground ring (z=0 — same as 2D strand outline, never moves)
+      ctx.beginPath();
+      pts.forEach((p, i) => { const sp = P(p.x, p.y, 0); i === 0 ? ctx.moveTo(sp.x, sp.y) : ctx.lineTo(sp.x, sp.y); });
+      ctx.closePath();
+      ctx.strokeStyle = C.curveA; ctx.lineWidth = 0.8; ctx.stroke();
+
+      if (t > 0.05) {
+        // Radial ribs from ground ring to apex
+        ctx.strokeStyle = `rgba(240,237,232,${(t * 0.25).toFixed(3)})`;
+        ctx.lineWidth = 0.5;
+        for (let k = 0; k < pts.length; k += 5) {
+          const sp = P(pts[k].x, pts[k].y, 0);
+          ctx.beginPath(); ctx.moveTo(sp.x, sp.y); ctx.lineTo(peak.x, peak.y); ctx.stroke();
+        }
+        // Mid-height contour ring
+        ctx.beginPath();
+        pts.forEach((p, i) => {
+          const sp = P(p.x + (cx-p.x)*0.5, p.y + (cy-p.y)*0.5, ph * 0.45);
+          i === 0 ? ctx.moveTo(sp.x, sp.y) : ctx.lineTo(sp.x, sp.y);
+        });
+        ctx.closePath();
+        ctx.strokeStyle = `rgba(240,237,232,${(t * 0.16).toFixed(3)})`;
+        ctx.lineWidth = 0.35; ctx.stroke();
+      }
+    });
+
+    // ─── 4. NODES — pinned to ground, crosshairs tilt with camera ─────────
+    nodes.forEach(nd => {
+      const sp = P(nd.x, nd.y, 0); // z=0, never moves
+      if (nd.onGrid) {
+        ctx.beginPath(); ctx.arc(sp.x, sp.y, 5, 0, Math.PI * 2);
+        ctx.strokeStyle = C.nodeDim; ctx.lineWidth = 0.8; ctx.stroke();
+        ctx.beginPath(); ctx.arc(sp.x, sp.y, 2.2, 0, Math.PI * 2);
+        ctx.fillStyle = C.node; ctx.fill();
+        const arm = Math.min(24, 10 + (nd.connections||0)*5);
+        // Crosshair arms along the projected axes
+        const ax = P(nd.x + arm, nd.y, 0), bx = P(nd.x - arm, nd.y, 0);
+        const ay = P(nd.x, nd.y + arm, 0), by = P(nd.x, nd.y - arm, 0);
+        ctx.beginPath();
+        ctx.moveTo(bx.x, bx.y); ctx.lineTo(ax.x, ax.y);
+        ctx.moveTo(by.x, by.y); ctx.lineTo(ay.x, ay.y);
+        ctx.strokeStyle = C.nodeDim; ctx.lineWidth = 0.55; ctx.stroke();
+      } else {
+        const size = 5;
+        ctx.save(); ctx.translate(sp.x, sp.y); ctx.rotate(Math.PI/4);
+        ctx.strokeStyle = C.nodeOff; ctx.lineWidth = 0.75;
+        ctx.strokeRect(-size/2, -size/2, size, size);
+        ctx.fillStyle = C.nodeOff; ctx.fillRect(-1.2, -1.2, 2.4, 2.4);
+        ctx.restore();
+      }
+    });
   }
 
   // ── Phase machine ─────────────────────────────────────────────────────────
@@ -2093,12 +2434,15 @@ document.querySelectorAll('.fade-up').forEach(el => observer.observe(el));
         intReveal = Math.min(1, el / DUR.intersect);
         if (el > DUR.intersect) { intReveal = 1; next('hold', now); } break;
       case 'hold':
-        if (el > DUR.hold) next('fade', now); break;
+        if (el > DUR.hold) next('volume', now); break;
+      case 'volume':
+        volumeProg = ease(Math.min(1, el / DUR.volume));
+        if (el > DUR.volume) next('fade', now); break;
       case 'fade':
         sceneAlpha = Math.max(0, 1 - ease(Math.min(1, el / DUR.fade)));
         if (el > DUR.fade) {
           sceneAlpha = 1; gcProg = gmProg = gfProg = 0;
-          nodeReveal = curveProg = intReveal = 0;
+          nodeReveal = curveProg = intReveal = volumeProg = 0;
           intCells.forEach(c => { c.alpha = 0; c.glowAlpha = 0; });
           globalT = 0;
           rebuildScene(); next('gc', now);
@@ -2127,24 +2471,23 @@ document.querySelectorAll('.fade-up').forEach(el => observer.observe(el));
     const afterGrid   = phase !== 'gc' && phase !== 'gm' && phase !== 'gf';
     const afterNodes  = afterGrid && phase !== 'nodes';
     const afterCurves = afterNodes && phase !== 'curves';
+    const inVolume    = phase === 'volume' || phase === 'fade';
 
     ctx.save();
     ctx.globalAlpha = sceneAlpha;
 
-    // L1 — grid (3-level subdivision)
-    drawGrid(gcProg, gmProg, gfProg);
-
-    // L2 — hatch boundary glows + hatch fills (behind curves so curves read on top)
-    if (afterCurves)
-      drawHatches(intReveal);
-
-    // L3 — bezier strands (pass through nodes, drawn over hatches)
-    if (afterNodes)
-      drawStrands(curveProg, driftWeight);
-
-    // L4 — nodes drawn LAST so they're always visible on top of curves and hatches
-    if (afterGrid)
-      drawNodes(afterNodes ? 1 : nodeReveal);
+    if (!inVolume) {
+      // ── 2D flat diagram ──
+      drawGrid(gcProg, gmProg, gfProg);
+      if (afterCurves) drawHatches(intReveal);
+      if (afterNodes)  drawStrands(curveProg, driftWeight);
+      if (afterGrid)   drawNodes(afterNodes ? 1 : nodeReveal);
+    } else {
+      // ── Volume phase: drawVolume redraws EVERYTHING through the same
+      // camera transform — grid, nodes, strands, hatches, volumes all tilt
+      // together as one scene. At t=0 it's pixel-identical to the 2D view.
+      drawVolume(volumeProg);
+    }
 
     ctx.restore();
   }
