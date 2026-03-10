@@ -1,0 +1,2501 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>THESIS — Architectural Project</title>
+<script type="importmap">
+  {
+    "imports": {
+      "three": "https://unpkg.com/three@0.158.0/build/three.module.js",
+      "three/addons/": "https://unpkg.com/three@0.158.0/examples/jsm/"
+    }
+  }
+</script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --black: #0a0a0a;
+    --white: #f0ede8;
+    --gray-1: #1a1a1a;
+    --gray-2: #2e2e2e;
+    --gray-3: #888;
+    --gray-4: #bbb;
+    --accent-red: #c0392b;
+    --accent-cyan: #00b4d8;
+    --accent-yellow: #e8c547;
+    --mono: 'Space Mono', monospace;
+    --serif: 'Cormorant Garamond', serif;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--black);
+    color: var(--white);
+    font-family: var(--mono);
+    overflow-x: hidden;
+    cursor: crosshair;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 9999;
+    opacity: 0.35;
+  }
+
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(240,237,232,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(240,237,232,0.03) 1px, transparent 1px);
+    background-size: 60px 60px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  nav {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 100;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.5rem 3rem;
+    border-bottom: 1px solid rgba(240,237,232,0.08);
+    background: rgba(10,10,10,0.85);
+    backdrop-filter: blur(8px);
+  }
+
+  .nav-logo {
+    font-family: var(--mono);
+    font-size: 0.65rem;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: var(--gray-4);
+  }
+  .nav-logo span { color: var(--accent-red); }
+
+  .nav-links { display: flex; gap: 2.5rem; list-style: none; }
+  .nav-links a {
+    font-size: 0.6rem;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: var(--gray-3);
+    text-decoration: none;
+    transition: color 0.2s;
+    position: relative;
+  }
+  .nav-links a::after {
+    content: '';
+    position: absolute;
+    bottom: -3px; left: 0;
+    width: 0; height: 1px;
+    background: var(--accent-cyan);
+    transition: width 0.3s;
+  }
+  .nav-links a:hover { color: var(--white); }
+  .nav-links a:hover::after { width: 100%; }
+
+  #hero {
+    position: relative;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    padding: 0 3rem 4rem;
+    overflow: hidden;
+    z-index: 1;
+  }
+
+  .hero-bg-text {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    font-family: var(--serif);
+    font-size: clamp(8rem, 20vw, 22rem);
+    font-weight: 300;
+    font-style: italic;
+    color: transparent;
+    -webkit-text-stroke: 1px rgba(240,237,232,0.06);
+    white-space: nowrap;
+    pointer-events: none;
+    user-select: none;
+    letter-spacing: -0.02em;
+  }
+
+  .hero-coords {
+    font-size: 0.55rem;
+    letter-spacing: 0.3em;
+    color: var(--accent-cyan);
+    margin-bottom: 1rem;
+  }
+
+  .hero-title {
+    font-family: var(--serif);
+    font-size: clamp(3rem, 8vw, 7rem);
+    font-weight: 300;
+    line-height: 0.9;
+    letter-spacing: -0.03em;
+    margin-bottom: 1.5rem;
+  }
+  .hero-title em { font-style: italic; color: var(--gray-4); }
+  .hero-title .accent-word {
+    -webkit-text-stroke: 1px var(--accent-red);
+    color: transparent;
+  }
+
+  .hero-meta { display: flex; gap: 3rem; align-items: flex-end; }
+  .hero-meta-item { display: flex; flex-direction: column; gap: 0.25rem; }
+  .hero-meta-label { font-size: 0.5rem; letter-spacing: 0.3em; color: var(--gray-3); text-transform: uppercase; }
+  .hero-meta-value { font-size: 0.75rem; letter-spacing: 0.1em; color: var(--white); }
+
+  .hero-scroll {
+    position: absolute;
+    right: 3rem; bottom: 4rem;
+    display: flex; flex-direction: column; align-items: center; gap: 0.5rem;
+    font-size: 0.5rem; letter-spacing: 0.3em; color: var(--gray-3); text-transform: uppercase;
+  }
+  .scroll-line {
+    width: 1px; height: 60px;
+    background: linear-gradient(to bottom, var(--accent-yellow), transparent);
+    animation: scrollPulse 2s ease-in-out infinite;
+  }
+  @keyframes scrollPulse {
+    0%,100% { opacity: 0.3; } 50% { opacity: 1; }
+  }
+
+  section { position: relative; z-index: 1; }
+
+  .section-label {
+    font-size: 0.5rem;
+    letter-spacing: 0.4em;
+    text-transform: uppercase;
+    color: var(--accent-red);
+    margin-bottom: 0.75rem;
+  }
+
+  #viewer {
+    padding: 6rem 3rem;
+    border-top: 1px solid rgba(240,237,232,0.08);
+  }
+
+  .viewer-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 2rem;
+  }
+
+  .viewer-title {
+    font-family: var(--serif);
+    font-size: clamp(1.5rem, 3vw, 2.5rem);
+    font-weight: 300;
+    font-style: italic;
+  }
+
+  .viewer-instructions {
+    font-size: 0.55rem;
+    letter-spacing: 0.15em;
+    color: var(--gray-3);
+    text-align: right;
+    line-height: 2;
+  }
+  .viewer-instructions span { color: var(--accent-cyan); }
+
+  #canvas-container {
+    position: relative;
+    width: 100%; height: 70vh;
+    border: 1px solid rgba(240,237,232,0.1);
+    overflow: hidden;
+    background: #0d0d0d;
+  }
+
+  #canvas-container::before, #canvas-container::after {
+    content: '';
+    position: absolute;
+    width: 20px; height: 20px;
+    z-index: 10;
+    pointer-events: none;
+  }
+  #canvas-container::before {
+    top: 0; left: 0;
+    border-top: 2px solid var(--accent-red);
+    border-left: 2px solid var(--accent-red);
+  }
+  #canvas-container::after {
+    bottom: 0; right: 0;
+    border-bottom: 2px solid var(--accent-cyan);
+    border-right: 2px solid var(--accent-cyan);
+  }
+
+  #three-canvas { width: 100% !important; height: 100% !important; display: block; }
+
+  .canvas-overlay {
+    position: absolute;
+    bottom: 1.5rem; left: 1.5rem;
+    font-size: 0.5rem; letter-spacing: 0.2em;
+    color: rgba(240,237,232,0.2);
+    pointer-events: none;
+    line-height: 1.8;
+  }
+  .canvas-overlay .highlight { color: var(--accent-yellow); }
+
+  .upload-zone {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    z-index: 5;
+  }
+  .upload-zone.hidden { display: none; }
+  .upload-zone p {
+    font-size: 0.6rem; letter-spacing: 0.25em;
+    color: var(--gray-3); text-transform: uppercase; line-height: 2.5;
+  }
+  .upload-zone .upload-icon { font-size: 2rem; color: rgba(240,237,232,0.1); margin-bottom: 0.5rem; }
+  #file-input { display: none; }
+  .upload-btn {
+    background: none;
+    border: 1px solid rgba(240,237,232,0.2);
+    color: var(--white);
+    font-family: var(--mono);
+    font-size: 0.55rem; letter-spacing: 0.2em; text-transform: uppercase;
+    padding: 0.6rem 1.4rem;
+    cursor: pointer; margin-top: 0.5rem; transition: all 0.2s;
+  }
+  .upload-btn:hover { border-color: var(--accent-yellow); color: var(--accent-yellow); }
+
+  /* ── TIMELINE ── */
+  #layer-panel {
+    margin-top: 1.2rem;
+    border: 1px solid var(--gray-2);
+    padding: 1.2rem 1.5rem;
+    background: rgba(10,10,10,0.6);
+    display: none;
+  }
+  #layer-panel.open { display: block; }
+  .layer-panel-header { font-size: 0.65rem; letter-spacing: 0.12em; color: var(--gray-3); margin-bottom: 1rem; }
+  .layer-rows { display: flex; flex-direction: column; gap: 0.55rem; }
+  .layer-row {
+    display: flex; align-items: center; gap: 0.9rem;
+    font-size: 0.7rem; letter-spacing: 0.08em;
+  }
+  .layer-toggle {
+    position: relative; width: 34px; height: 18px;
+    flex-shrink: 0; cursor: pointer;
+  }
+  .layer-toggle input { opacity: 0; width: 0; height: 0; }
+  .layer-toggle .lslider {
+    position: absolute; inset: 0;
+    background: var(--gray-2); border-radius: 18px;
+    transition: background 0.2s;
+  }
+  .layer-toggle .lslider::before {
+    content: ''; position: absolute;
+    width: 12px; height: 12px; left: 3px; top: 3px;
+    background: var(--gray-4); border-radius: 50%;
+    transition: transform 0.2s, background 0.2s;
+  }
+  .layer-toggle input:checked + .lslider { background: var(--gray-2); }
+  .layer-toggle input:checked + .lslider::before { transform: translateX(16px); background: var(--white); }
+  .layer-swatch { width: 10px; height: 10px; border-radius: 1px; flex-shrink: 0; }
+  .layer-name { flex: 1; color: var(--gray-4); }
+  .layer-name.active { color: var(--white); }
+  .layer-isolate-btn {
+    background: none; border: 1px solid var(--gray-2); color: var(--gray-3);
+    font-family: var(--mono); font-size: 0.6rem; letter-spacing: 0.08em;
+    padding: 2px 7px; cursor: pointer; transition: all 0.15s;
+  }
+  .layer-isolate-btn:hover, .layer-isolate-btn.solo { border-color: var(--accent-cyan); color: var(--accent-cyan); }
+  .layer-isolate-btn.solo { background: rgba(0,180,216,0.08); }
+    display: none;
+    margin-top: 1.5rem;
+    border: 1px solid rgba(240,237,232,0.1);
+    background: #0f0f0f;
+    padding: 1.5rem 2rem 1.25rem;
+    position: relative;
+  }
+  #timeline-panel.open { display: block; }
+
+  #timeline-panel::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0;
+    width: 3px; height: 100%;
+    background: var(--accent-yellow);
+  }
+
+  .tl-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.25rem;
+  }
+
+  .tl-title {
+    font-size: 0.5rem;
+    letter-spacing: 0.35em;
+    text-transform: uppercase;
+    color: var(--accent-yellow);
+  }
+
+  .tl-phase-label {
+    font-family: var(--serif);
+    font-size: 1.1rem;
+    font-style: italic;
+    color: var(--white);
+  }
+
+  .tl-phase-sub {
+    font-size: 0.48rem;
+    letter-spacing: 0.2em;
+    color: var(--gray-3);
+    margin-top: 0.15rem;
+  }
+
+  /* scrubber track */
+  .tl-track {
+    position: relative;
+    margin-bottom: 1rem;
+  }
+
+  .tl-nodes {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 0.5rem;
+  }
+
+  .tl-node {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    cursor: pointer;
+    gap: 0.35rem;
+    flex: 1;
+  }
+
+  .tl-node-dot {
+    width: 8px; height: 8px;
+    border: 1px solid var(--gray-2);
+    background: var(--gray-2);
+    border-radius: 50%;
+    transition: all 0.25s;
+    position: relative;
+    z-index: 2;
+  }
+
+  .tl-node.active .tl-node-dot {
+    background: var(--accent-yellow);
+    border-color: var(--accent-yellow);
+    box-shadow: 0 0 8px rgba(232,197,71,0.5);
+  }
+
+  .tl-node.done .tl-node-dot {
+    background: var(--gray-3);
+    border-color: var(--gray-3);
+  }
+
+  .tl-node-label {
+    font-size: 0.42rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--gray-3);
+    text-align: center;
+    transition: color 0.25s;
+  }
+
+  .tl-node.active .tl-node-label { color: var(--accent-yellow); }
+  .tl-node.done .tl-node-label { color: var(--gray-4); }
+
+  /* connecting line behind nodes */
+  .tl-line-bg {
+    position: absolute;
+    top: 3px; left: 4%;
+    width: 92%; height: 1px;
+    background: var(--gray-2);
+    z-index: 1;
+  }
+
+  .tl-line-fill {
+    position: absolute;
+    top: 0; left: 0;
+    height: 100%;
+    background: var(--accent-yellow);
+    transition: width 0.5s ease;
+  }
+
+  /* slider */
+  .tl-slider-row {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-top: 0.5rem;
+  }
+
+  #tl-slider {
+    flex: 1;
+    -webkit-appearance: none;
+    appearance: none;
+    height: 2px;
+    background: var(--gray-2);
+    outline: none;
+    cursor: pointer;
+  }
+
+  #tl-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    background: var(--accent-yellow);
+    box-shadow: 0 0 6px rgba(232,197,71,0.6);
+    cursor: crosshair;
+  }
+
+  #tl-slider::-moz-range-thumb {
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    background: var(--accent-yellow);
+    border: none;
+    cursor: crosshair;
+  }
+
+  .tl-play-btn {
+    background: none;
+    border: 1px solid rgba(232,197,71,0.3);
+    color: var(--accent-yellow);
+    font-family: var(--mono);
+    font-size: 0.55rem;
+    letter-spacing: 0.15em;
+    padding: 0.4rem 0.9rem;
+    cursor: crosshair;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+  .tl-play-btn:hover { background: rgba(232,197,71,0.08); border-color: var(--accent-yellow); }
+
+  .tl-year-display {
+    font-size: 0.5rem;
+    letter-spacing: 0.2em;
+    color: var(--gray-3);
+    white-space: nowrap;
+    min-width: 4rem;
+    text-align: right;
+  }
+  .tl-year-display span { color: var(--accent-yellow); }
+
+  .viewer-controls { display: flex; gap: 1rem; margin-top: 1.5rem; flex-wrap: wrap; }
+  .ctrl-btn {
+    background: none;
+    border: 1px solid rgba(240,237,232,0.15);
+    color: var(--gray-3);
+    font-family: var(--mono);
+    font-size: 0.55rem; letter-spacing: 0.2em; text-transform: uppercase;
+    padding: 0.6rem 1.2rem;
+    cursor: crosshair; transition: all 0.2s;
+  }
+  .ctrl-btn:hover { border-color: var(--accent-cyan); color: var(--accent-cyan); }
+  .ctrl-btn.active { border-color: var(--accent-red); color: var(--accent-red); }
+
+  #drawings {
+    padding: 6rem 3rem;
+    border-top: 1px solid rgba(240,237,232,0.08);
+  }
+
+  .drawings-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr;
+    grid-template-rows: auto auto;
+    gap: 2px;
+    margin-top: 3rem;
+  }
+
+  .drawing-cell {
+    background: #111;
+    border: 1px solid rgba(240,237,232,0.06);
+    overflow: hidden;
+    position: relative;
+    cursor: crosshair;
+  }
+  .drawing-cell:first-child { grid-row: 1 / 3; }
+  .drawing-cell svg { width: 100%; height: 100%; display: block; min-height: 200px; }
+
+  .drawing-label {
+    position: absolute;
+    bottom: 0.75rem; left: 0.75rem;
+    font-size: 0.45rem; letter-spacing: 0.25em;
+    color: var(--gray-3); text-transform: uppercase;
+    background: rgba(10,10,10,0.7);
+    padding: 0.25rem 0.5rem;
+  }
+  .drawing-cell:hover .drawing-label { color: var(--accent-yellow); }
+
+  #program {
+    padding: 6rem 3rem;
+    border-top: 1px solid rgba(240,237,232,0.08);
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6rem;
+    align-items: start;
+  }
+
+  .program-text h2 {
+    font-family: var(--serif);
+    font-size: clamp(2rem, 4vw, 3.5rem);
+    font-weight: 300;
+    line-height: 1.1;
+    margin-bottom: 2rem;
+  }
+
+  .program-text p {
+    font-family: var(--serif);
+    font-size: 1.05rem;
+    font-weight: 300;
+    line-height: 1.8;
+    color: var(--gray-4);
+    margin-bottom: 1.5rem;
+  }
+  .program-text p strong { color: var(--white); font-weight: 400; }
+
+  .program-stats { display: flex; flex-direction: column; gap: 0; }
+
+  .stat-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: 1.25rem 0;
+    border-bottom: 1px solid rgba(240,237,232,0.07);
+    position: relative; overflow: hidden;
+  }
+  .stat-row::before {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 0;
+    height: 1px; width: 0;
+    background: var(--accent-red);
+    transition: width 0.5s ease;
+  }
+  .stat-row:hover::before { width: 100%; }
+
+  .stat-label { font-size: 0.6rem; letter-spacing: 0.2em; color: var(--gray-3); text-transform: uppercase; }
+  .stat-value { font-family: var(--serif); font-size: 1.8rem; font-weight: 300; color: var(--white); }
+  .stat-value .unit { font-size: 0.7rem; color: var(--accent-cyan); margin-left: 0.25rem; font-family: var(--mono); }
+
+  #process {
+    padding: 6rem 3rem;
+    border-top: 1px solid rgba(240,237,232,0.08);
+  }
+
+  .process-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 2px;
+    margin-top: 3rem;
+  }
+
+  .process-step {
+    padding: 2rem 1.5rem;
+    background: #111;
+    border: 1px solid rgba(240,237,232,0.06);
+    position: relative;
+    transition: background 0.3s;
+  }
+  .process-step:hover { background: #161616; }
+
+  .step-number {
+    font-size: 3rem; font-family: var(--serif); font-weight: 300; font-style: italic;
+    color: rgba(240,237,232,0.07); line-height: 1; margin-bottom: 1rem;
+  }
+  .step-title { font-size: 0.65rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--white); margin-bottom: 0.75rem; }
+  .step-desc { font-family: var(--serif); font-size: 0.9rem; font-weight: 300; color: var(--gray-3); line-height: 1.7; }
+
+  .step-accent {
+    position: absolute; top: 0; left: 0;
+    width: 3px; height: 0;
+    transition: height 0.4s ease;
+  }
+  .process-step:nth-child(1) .step-accent { background: var(--accent-red); }
+  .process-step:nth-child(2) .step-accent { background: var(--accent-cyan); }
+  .process-step:nth-child(3) .step-accent { background: var(--accent-yellow); }
+  .process-step:nth-child(4) .step-accent { background: var(--white); }
+  .process-step:hover .step-accent { height: 100%; }
+
+  footer {
+    padding: 3rem;
+    border-top: 1px solid rgba(240,237,232,0.08);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: relative; z-index: 1;
+  }
+
+  .footer-left { font-size: 0.55rem; letter-spacing: 0.2em; color: var(--gray-3); line-height: 2; }
+  .footer-left span { color: var(--accent-red); }
+  .footer-right { font-family: var(--serif); font-size: 0.85rem; font-style: italic; color: var(--gray-3); }
+
+  .fade-up { opacity: 0; transform: translateY(30px); transition: opacity 0.8s ease, transform 0.8s ease; }
+  .fade-up.visible { opacity: 1; transform: translateY(0); }
+
+  /* ── HERO CANVAS ANIMATION ── */
+  #hero-canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* All hero content sits above canvas */
+  #hero > *:not(#hero-canvas) { position: relative; z-index: 2; }
+
+  @media (max-width: 768px) {
+    nav { padding: 1.2rem 1.5rem; }
+    .nav-links { gap: 1.5rem; }
+    #hero { padding: 0 1.5rem 3rem; }
+    #viewer, #drawings, #program, #process { padding: 4rem 1.5rem; }
+    #program { grid-template-columns: 1fr; gap: 3rem; }
+    .process-grid { grid-template-columns: 1fr 1fr; }
+    .drawings-grid { grid-template-columns: 1fr 1fr; }
+    .drawings-grid .drawing-cell:first-child { grid-row: auto; }
+    footer { flex-direction: column; gap: 1rem; text-align: center; }
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-logo">ARCH <span>●</span> THESIS / 2025</div>
+  <ul class="nav-links">
+    <li><a href="#viewer">Model</a></li>
+    <li><a href="#drawings">Drawings</a></li>
+    <li><a href="#program">Program</a></li>
+    <li><a href="#process">Process</a></li>
+  </ul>
+</nav>
+
+<section id="hero">
+  <canvas id="hero-canvas"></canvas>
+  <div class="hero-bg-text">FORM</div>
+  <div class="hero-coords fade-up">34°03'N 118°14'W</div>
+  <h1 class="hero-title fade-up">
+    In-Between<br>
+    <em>the</em><br>
+    <span class="accent-word">Vertizontality</span>
+  </h1>
+  <div class="hero-meta fade-up">
+    <div class="hero-meta-item">
+      <span class="hero-meta-label">Student</span>
+      <span class="hero-meta-value">Chayakorn Sathawarintu</span>
+    </div>
+    <div class="hero-meta-item">
+      <span class="hero-meta-label">Advisor</span>
+      <span class="hero-meta-value">Jackilin Bloom</span>
+    </div>
+    <div class="hero-meta-item">
+      <span class="hero-meta-label">Institution</span>
+      <span class="hero-meta-value">SCI_Arc</span>
+    </div>
+    <div class="hero-meta-item">
+      <span class="hero-meta-label">Year</span>
+      <span class="hero-meta-value">2026</span>
+    </div>
+  </div>
+  <div class="hero-scroll">
+    <div class="scroll-line"></div>
+    <span>Scroll</span>
+  </div>
+</section>
+
+<section id="viewer">
+  <div class="viewer-header fade-up">
+    <div>
+      <div class="section-label">// 01 — Interactive Model</div>
+      <h2 class="viewer-title">Volumetric Composition</h2>
+    </div>
+    <div class="viewer-instructions">
+      <span>Drag</span> to orbit &nbsp;·&nbsp; <span>Scroll</span> to zoom<br>
+      <span>Right-drag</span> to pan &nbsp;·&nbsp; <span>Double-click</span> to reset
+    </div>
+  </div>
+
+  <div id="canvas-container" class="fade-up">
+    <canvas id="three-canvas"></canvas>
+    <div class="upload-zone" id="upload-zone">
+      <div class="upload-icon">⬡</div>
+      <p>Drop your .glb / .gltf / .obj model here<br>or load the demo structure</p>
+      <button class="upload-btn" onclick="document.getElementById('file-input').click()">↑ Upload Model</button>
+      <input type="file" id="file-input" accept=".glb,.gltf,.obj">
+    </div>
+    <div class="canvas-overlay">
+      <div>PROJ / THESIS-001</div>
+      <div class="highlight" id="coord-display">X: — Y: — Z: —</div>
+      <div id="view-mode-display">VIEW: PERSPECTIVE</div>
+    </div>
+  </div>
+
+  <div class="viewer-controls fade-up">
+    <button class="ctrl-btn active" onclick="setView('perspective', this)">Perspective</button>
+    <button class="ctrl-btn" onclick="setView('top', this)">Plan View</button>
+    <button class="ctrl-btn" onclick="setView('front', this)">Elevation</button>
+    <button class="ctrl-btn" onclick="setView('side', this)">Section</button>
+    <button class="ctrl-btn" onclick="toggleWireframe()">Wireframe</button>
+    <button class="ctrl-btn" onclick="resetCamera()">Reset View</button>
+    <button class="ctrl-btn" id="tl-toggle-btn" onclick="toggleTimeline()">Timeline ↓</button>
+    <button class="ctrl-btn" id="layer-toggle-btn" onclick="toggleLayerPanel()">Layers ↓</button>
+  </div>
+
+  <!-- TIMELINE PANEL -->
+  <div id="timeline-panel">
+    <div class="tl-header">
+      <div class="tl-title">// Growth Over Time</div>
+      <div style="text-align:right">
+        <div class="tl-phase-label" id="tl-phase-name">Site Clearing</div>
+        <div class="tl-phase-sub" id="tl-phase-desc">Existing conditions &amp; survey</div>
+      </div>
+    </div>
+
+    <div class="tl-track">
+      <div class="tl-line-bg"><div class="tl-line-fill" id="tl-line-fill"></div></div>
+      <div class="tl-nodes" id="tl-nodes">
+        <div class="tl-node active" data-phase="0" onclick="setPhase(0)">
+          <div class="tl-node-dot"></div>
+          <div class="tl-node-label">Phase 0</div>
+        </div>
+        <div class="tl-node" data-phase="1" onclick="setPhase(1)">
+          <div class="tl-node-dot"></div>
+          <div class="tl-node-label">Phase 1</div>
+        </div>
+        <div class="tl-node" data-phase="2" onclick="setPhase(2)">
+          <div class="tl-node-dot"></div>
+          <div class="tl-node-label">Phase 2</div>
+        </div>
+        <div class="tl-node" data-phase="3" onclick="setPhase(3)">
+          <div class="tl-node-dot"></div>
+          <div class="tl-node-label">Phase 3</div>
+        </div>
+        <div class="tl-node" data-phase="4" onclick="setPhase(4)">
+          <div class="tl-node-dot"></div>
+          <div class="tl-node-label">Phase 4</div>
+        </div>
+        <div class="tl-node" data-phase="5" onclick="setPhase(5)">
+          <div class="tl-node-dot"></div>
+          <div class="tl-node-label">Complete</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tl-slider-row">
+      <button class="tl-play-btn" id="tl-play-btn" onclick="togglePlay()">▶ Play</button>
+      <input type="range" id="tl-slider" min="0" max="5" step="0.01" value="0" oninput="onSlider(this.value)">
+      <div class="tl-year-display">YEAR <span id="tl-year-val">0</span></div>
+    </div>
+  </div>
+
+  <!-- LAYER ISOLATION PANEL -->
+  <div id="layer-panel">
+    <div class="layer-panel-header">// LAYER ISOLATION</div>
+    <div class="layer-rows">
+      <div class="layer-row">
+        <label class="layer-toggle">
+          <input type="checkbox" id="lyr-grid" checked onchange="setLayerVisible('grid', this.checked)">
+          <span class="lslider"></span>
+        </label>
+        <div class="layer-swatch" style="background:#444;border:1px solid #666"></div>
+        <span class="layer-name active" id="lname-grid">01 — Grid</span>
+        <button class="layer-isolate-btn" id="lsolo-grid" onclick="soloLayer('grid')">SOLO</button>
+      </div>
+      <div class="layer-row">
+        <label class="layer-toggle">
+          <input type="checkbox" id="lyr-nodes" checked onchange="setLayerVisible('nodes', this.checked)">
+          <span class="lslider"></span>
+        </label>
+        <div class="layer-swatch" style="background:#f0ede8"></div>
+        <span class="layer-name active" id="lname-nodes">02 — Nodes / Points</span>
+        <button class="layer-isolate-btn" id="lsolo-nodes" onclick="soloLayer('nodes')">SOLO</button>
+      </div>
+      <div class="layer-row">
+        <label class="layer-toggle">
+          <input type="checkbox" id="lyr-curves" checked onchange="setLayerVisible('curves', this.checked)">
+          <span class="lslider"></span>
+        </label>
+        <div class="layer-swatch" style="background:#00b4d8"></div>
+        <span class="layer-name active" id="lname-curves">03 — Curves / Spines</span>
+        <button class="layer-isolate-btn" id="lsolo-curves" onclick="soloLayer('curves')">SOLO</button>
+      </div>
+      <div class="layer-row">
+        <label class="layer-toggle">
+          <input type="checkbox" id="lyr-shapes" checked onchange="setLayerVisible('shapes', this.checked)">
+          <span class="lslider"></span>
+        </label>
+        <div class="layer-swatch" style="background:#c0392b"></div>
+        <span class="layer-name active" id="lname-shapes">04 — Shapes / Hatches</span>
+        <button class="layer-isolate-btn" id="lsolo-shapes" onclick="soloLayer('shapes')">SOLO</button>
+      </div>
+    </div>
+  </div>
+
+</section>
+  <div class="section-label fade-up">// 02 — Drawings</div>
+  <div class="drawings-grid fade-up">
+
+    <div class="drawing-cell">
+      <svg viewBox="0 0 400 500" xmlns="http://www.w3.org/2000/svg" style="min-height:400px">
+        <rect width="400" height="500" fill="#0d0d0d"/>
+        <g stroke="#1e1e1e" stroke-width="0.5">
+          <line x1="0" y1="60" x2="400" y2="60"/><line x1="0" y1="120" x2="400" y2="120"/>
+          <line x1="0" y1="180" x2="400" y2="180"/><line x1="0" y1="240" x2="400" y2="240"/>
+          <line x1="0" y1="300" x2="400" y2="300"/><line x1="0" y1="360" x2="400" y2="360"/>
+          <line x1="0" y1="420" x2="400" y2="420"/><line x1="60" y1="0" x2="60" y2="500"/>
+          <line x1="120" y1="0" x2="120" y2="500"/><line x1="180" y1="0" x2="180" y2="500"/>
+          <line x1="240" y1="0" x2="240" y2="500"/><line x1="300" y1="0" x2="300" y2="500"/>
+          <line x1="360" y1="0" x2="360" y2="500"/>
+        </g>
+        <rect x="40" y="40" width="320" height="420" fill="none" stroke="#f0ede8" stroke-width="2.5"/>
+        <line x1="40" y1="180" x2="200" y2="180" stroke="#f0ede8" stroke-width="1.5"/>
+        <line x1="200" y1="40" x2="200" y2="280" stroke="#f0ede8" stroke-width="1.5"/>
+        <line x1="200" y1="280" x2="360" y2="280" stroke="#f0ede8" stroke-width="1.5"/>
+        <line x1="120" y1="180" x2="120" y2="320" stroke="#f0ede8" stroke-width="1.5"/>
+        <line x1="120" y1="320" x2="280" y2="320" stroke="#f0ede8" stroke-width="1.5"/>
+        <line x1="280" y1="280" x2="280" y2="460" stroke="#f0ede8" stroke-width="1.5"/>
+        <line x1="160" y1="178" x2="200" y2="178" stroke="#0d0d0d" stroke-width="3"/>
+        <path d="M160,180 Q180,160 200,180" fill="none" stroke="#f0ede8" stroke-width="1"/>
+        <line x1="198" y1="200" x2="198" y2="240" stroke="#0d0d0d" stroke-width="3"/>
+        <path d="M200,200 Q220,220 200,240" fill="none" stroke="#f0ede8" stroke-width="1"/>
+        <rect x="205" y="45" width="150" height="130" fill="rgba(192,57,43,0.08)"/>
+        <rect x="45" y="185" width="70" height="130" fill="rgba(0,180,216,0.06)"/>
+        <g stroke="#888" stroke-width="0.5" fill="#888" font-family="monospace" font-size="7">
+          <line x1="40" y1="475" x2="360" y2="475"/>
+          <line x1="40" y1="470" x2="40" y2="480"/><line x1="360" y1="470" x2="360" y2="480"/>
+          <text x="195" y="485" text-anchor="middle">32.0 m</text>
+          <line x1="10" y1="40" x2="10" y2="460"/>
+          <line x1="5" y1="40" x2="15" y2="40"/><line x1="5" y1="460" x2="15" y2="460"/>
+          <text x="6" y="255" text-anchor="middle" transform="rotate(-90,6,255)">42.0 m</text>
+        </g>
+        <g transform="translate(350,80)">
+          <circle cx="0" cy="0" r="14" fill="none" stroke="#444" stroke-width="1"/>
+          <polygon points="0,-10 4,5 0,2 -4,5" fill="#f0ede8"/>
+          <text x="0" y="22" text-anchor="middle" fill="#888" font-family="monospace" font-size="7">N</text>
+        </g>
+        <text x="50" y="25" fill="#c0392b" font-family="monospace" font-size="8" letter-spacing="2">GROUND FLOOR PLAN</text>
+        <text x="50" y="35" fill="#555" font-family="monospace" font-size="6">SCALE 1:200</text>
+      </svg>
+      <div class="drawing-label">Ground Floor Plan — 1:200</div>
+    </div>
+
+    <div class="drawing-cell">
+      <svg viewBox="0 0 250 220" xmlns="http://www.w3.org/2000/svg">
+        <rect width="250" height="220" fill="#0d0d0d"/>
+        <g stroke="#1e1e1e" stroke-width="0.5">
+          <line x1="0" y1="40" x2="250" y2="40"/><line x1="0" y1="80" x2="250" y2="80"/>
+          <line x1="0" y1="120" x2="250" y2="120"/><line x1="0" y1="160" x2="250" y2="160"/>
+          <line x1="50" y1="0" x2="50" y2="220"/><line x1="100" y1="0" x2="100" y2="220"/>
+          <line x1="150" y1="0" x2="150" y2="220"/><line x1="200" y1="0" x2="200" y2="220"/>
+        </g>
+        <line x1="20" y1="175" x2="230" y2="175" stroke="#f0ede8" stroke-width="2"/>
+        <polyline points="30,175 30,60 80,60 80,90 130,90 130,40 180,40 180,100 220,100 220,175" fill="rgba(240,237,232,0.04)" stroke="#f0ede8" stroke-width="1.5"/>
+        <line x1="30" y1="120" x2="80" y2="120" stroke="#f0ede8" stroke-width="0.75" stroke-dasharray="3,3"/>
+        <line x1="130" y1="120" x2="220" y2="120" stroke="#f0ede8" stroke-width="0.75" stroke-dasharray="3,3"/>
+        <line x1="130" y1="40" x2="180" y2="40" stroke="#00b4d8" stroke-width="2"/>
+        <g stroke="#555" stroke-width="0.5">
+          <line x1="28" y1="60" x2="32" y2="64"/><line x1="28" y1="66" x2="32" y2="70"/>
+          <line x1="28" y1="72" x2="32" y2="76"/>
+          <line x1="218" y1="100" x2="222" y2="104"/><line x1="218" y1="106" x2="222" y2="110"/>
+          <line x1="218" y1="112" x2="222" y2="116"/>
+        </g>
+        <text x="15" y="12" fill="#c0392b" font-family="monospace" font-size="7" letter-spacing="1">SECTION A-A'</text>
+      </svg>
+      <div class="drawing-label">Section A-A'</div>
+    </div>
+
+    <div class="drawing-cell">
+      <svg viewBox="0 0 250 220" xmlns="http://www.w3.org/2000/svg">
+        <rect width="250" height="220" fill="#0d0d0d"/>
+        <g stroke="#1e1e1e" stroke-width="0.5">
+          <line x1="0" y1="40" x2="250" y2="40"/><line x1="0" y1="80" x2="250" y2="80"/>
+          <line x1="0" y1="120" x2="250" y2="120"/><line x1="0" y1="160" x2="250" y2="160"/>
+          <line x1="50" y1="0" x2="50" y2="220"/><line x1="100" y1="0" x2="100" y2="220"/>
+          <line x1="150" y1="0" x2="150" y2="220"/><line x1="200" y1="0" x2="200" y2="220"/>
+        </g>
+        <line x1="20" y1="170" x2="230" y2="170" stroke="#f0ede8" stroke-width="2"/>
+        <rect x="30" y="80" width="190" height="90" fill="rgba(240,237,232,0.03)" stroke="#f0ede8" stroke-width="1.5"/>
+        <rect x="30" y="50" width="80" height="120" fill="rgba(240,237,232,0.03)" stroke="#f0ede8" stroke-width="1.5"/>
+        <rect x="45" y="65" width="25" height="35" fill="rgba(0,180,216,0.12)" stroke="#00b4d8" stroke-width="0.75"/>
+        <rect x="75" y="65" width="25" height="35" fill="rgba(0,180,216,0.12)" stroke="#00b4d8" stroke-width="0.75"/>
+        <rect x="150" y="95" width="30" height="40" fill="rgba(0,180,216,0.08)" stroke="#555" stroke-width="0.75"/>
+        <rect x="190" y="95" width="20" height="40" fill="rgba(0,180,216,0.08)" stroke="#555" stroke-width="0.75"/>
+        <line x1="30" y1="50" x2="110" y2="50" stroke="#e8c547" stroke-width="1.5"/>
+        <text x="15" y="12" fill="#c0392b" font-family="monospace" font-size="7" letter-spacing="1">WEST ELEVATION</text>
+      </svg>
+      <div class="drawing-label">West Elevation</div>
+    </div>
+
+    <div class="drawing-cell">
+      <svg viewBox="0 0 250 220" xmlns="http://www.w3.org/2000/svg">
+        <rect width="250" height="220" fill="#0d0d0d"/>
+        <g stroke="#161616" stroke-width="0.5">
+          <line x1="125" y1="30" x2="20" y2="90"/><line x1="125" y1="30" x2="230" y2="90"/>
+          <line x1="20" y1="90" x2="20" y2="150"/><line x1="230" y1="90" x2="230" y2="150"/>
+          <line x1="20" y1="150" x2="125" y2="210"/><line x1="230" y1="150" x2="125" y2="210"/>
+        </g>
+        <polygon points="125,80 210,125 210,170 125,215 40,170 40,125" fill="rgba(240,237,232,0.04)" stroke="#f0ede8" stroke-width="1.5"/>
+        <polygon points="125,80 40,125 40,80 83,57" fill="rgba(240,237,232,0.07)" stroke="#f0ede8" stroke-width="1.5"/>
+        <polygon points="125,80 210,125 210,90 167,57 125,45" fill="rgba(240,237,232,0.05)" stroke="#f0ede8" stroke-width="1.5"/>
+        <polygon points="125,45 167,57 167,22 125,10" fill="rgba(240,237,232,0.09)" stroke="#f0ede8" stroke-width="1.5"/>
+        <line x1="125" y1="10" x2="125" y2="45" stroke="#c0392b" stroke-width="2"/>
+        <line x1="40" y1="125" x2="40" y2="80" stroke="#e8c547" stroke-width="1.5"/>
+        <line x1="125" y1="80" x2="125" y2="215" stroke="#444" stroke-width="0.75" stroke-dasharray="4,3"/>
+        <text x="15" y="12" fill="#c0392b" font-family="monospace" font-size="7" letter-spacing="1">AXONOMETRIC</text>
+      </svg>
+      <div class="drawing-label">Exploded Axonometric</div>
+    </div>
+  </div>
+</section>
+
+<section id="program">
+  <div class="program-text fade-up">
+    <div class="section-label">// 03 — Thesis &amp; Concept</div>
+    <h2>Architecture as<br><em>negotiated ground</em></h2>
+    <p>
+      The project investigates the <strong>liminal space between structure and void</strong> —
+      where the drawn line dissolves into inhabitable thickness.
+      Informed by the geological and social strata of its site,
+      the building becomes a field of controlled tensions.
+    </p>
+    <p>
+      Each threshold is designed as a <strong>moment of pause</strong>,
+      where light, section, and material converge to produce an
+      architecture that resists immediate legibility — one that unfolds
+      over time and through use.
+    </p>
+    <p style="font-size:0.8rem; color: var(--gray-3); font-family: var(--mono); letter-spacing:0.05em;">
+      ↳ Edit this text to describe your own thesis concept.
+    </p>
+  </div>
+
+  <div class="program-stats fade-up">
+    <div class="stat-row">
+      <span class="stat-label">Total Area</span>
+      <span class="stat-value">4,200<span class="unit">m²</span></span>
+    </div>
+    <div class="stat-row">
+      <span class="stat-label">Site Area</span>
+      <span class="stat-value">8,500<span class="unit">m²</span></span>
+    </div>
+    <div class="stat-row">
+      <span class="stat-label">Levels</span>
+      <span class="stat-value">4<span class="unit">FL</span></span>
+    </div>
+    <div class="stat-row">
+      <span class="stat-label">Structure</span>
+      <span class="stat-value">RC<span class="unit">+STL</span></span>
+    </div>
+    <div class="stat-row">
+      <span class="stat-label">Completion</span>
+      <span class="stat-value">2025<span class="unit">est.</span></span>
+    </div>
+  </div>
+</section>
+
+<section id="process">
+  <div class="section-label fade-up">// 04 — Process</div>
+  <div class="process-grid fade-up">
+    <div class="process-step">
+      <div class="step-accent"></div>
+      <div class="step-number">01</div>
+      <div class="step-title">Site Analysis</div>
+      <p class="step-desc">Mapping of geological, social, and infrastructural layers to extract latent organizational logics from the site's existing conditions.</p>
+    </div>
+    <div class="process-step">
+      <div class="step-accent"></div>
+      <div class="step-number">02</div>
+      <div class="step-title">Formal Derivation</div>
+      <p class="step-desc">Parametric studies of section and plan, testing the relationship between structural necessity and spatial ambiguity across iterations.</p>
+    </div>
+    <div class="process-step">
+      <div class="step-accent"></div>
+      <div class="step-number">03</div>
+      <div class="step-title">Material Logic</div>
+      <p class="step-desc">Selection of materials as indexical markers — surfaces that bear the trace of making and register time through texture and weathering.</p>
+    </div>
+    <div class="process-step">
+      <div class="step-accent"></div>
+      <div class="step-number">04</div>
+      <div class="step-title">Resolution</div>
+      <p class="step-desc">Synthesis of structural, programmatic, and atmospheric intentions into a coherent architectural proposal legible at multiple scales.</p>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="footer-left">
+    M.ARCH THESIS — 2026<br>
+    <span>●</span> CHAYAKORN SATHAWARINTU · Southern California Institute of Architecture<br>
+    Built for GitHub Pages
+  </div>
+  <div class="footer-right">
+    Chaya_SCI-Arc
+  </div>
+</footer>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { OBJLoader } from 'three/addons/loaders/OBJLoader.js';
+
+const canvas = document.getElementById('three-canvas');
+const container = document.getElementById('canvas-container');
+
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.1;
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x0d0d0d);
+scene.fog = new THREE.Fog(0x0d0d0d, 30, 80);
+
+const camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 200);
+camera.position.set(8, 6, 10);
+
+const controls = new OrbitControls(camera, canvas);
+controls.enableDamping = true;
+controls.dampingFactor = 0.05;
+controls.minDistance = 2;
+controls.maxDistance = 40;
+controls.autoRotate = true;
+controls.autoRotateSpeed = 0.4;
+
+// Lighting
+scene.add(new THREE.AmbientLight(0xffffff, 0.3));
+const dirLight = new THREE.DirectionalLight(0xffffff, 1.2);
+dirLight.position.set(10, 15, 8);
+dirLight.castShadow = true;
+dirLight.shadow.mapSize.width = 2048;
+dirLight.shadow.mapSize.height = 2048;
+scene.add(dirLight);
+
+const redLight = new THREE.PointLight(0xc0392b, 1.5, 12);
+redLight.position.set(-4, 3, 2);
+scene.add(redLight);
+
+const cyanLight = new THREE.PointLight(0x00b4d8, 1.2, 12);
+cyanLight.position.set(4, 1, -3);
+scene.add(cyanLight);
+
+scene.add(new THREE.GridHelper(20, 20, 0x2a2a2a, 0x1a1a1a));
+
+// Default architectural massing model
+function buildDefaultModel() {
+  const group = new THREE.Group();
+
+  // ── Layer 1: Grid ─────────────────────────────────────────────────────────
+  const gridGroup = new THREE.Group(); gridGroup.name = 'layer_grid';
+  const gridMat = new THREE.MeshStandardMaterial({ color: 0x444440, roughness: 0.9, metalness: 0.0 });
+  const gridLineMat = new THREE.LineBasicMaterial({ color: 0x555550 });
+
+  // Ground plane grid (flat mesh)
+  const podium = new THREE.Mesh(new THREE.BoxGeometry(10, 0.04, 8), gridMat);
+  podium.position.y = -0.02; podium.receiveShadow = true;
+  gridGroup.add(podium);
+
+  // Grid lines on the ground plane
+  const gridHelper = new THREE.GridHelper(10, 10, 0x333330, 0x2a2a28);
+  gridHelper.position.y = 0.01;
+  gridGroup.add(gridHelper);
+
+  // Vertical reference lines at grid intersections
+  for (let x = -4; x <= 4; x += 2) {
+    for (let z = -3; z <= 3; z += 2) {
+      const geo = new THREE.BufferGeometry().setFromPoints([
+        new THREE.Vector3(x, 0, z), new THREE.Vector3(x, 5, z)
+      ]);
+      const line = new THREE.Line(geo, new THREE.LineBasicMaterial({ color: 0x333330, transparent: true, opacity: 0.5 }));
+      gridGroup.add(line);
+    }
+  }
+  group.add(gridGroup);
+
+  // ── Layer 2: Nodes / Points ───────────────────────────────────────────────
+  const nodesGroup = new THREE.Group(); nodesGroup.name = 'layer_nodes';
+  const nodeMat = new THREE.MeshStandardMaterial({ color: 0xf0ede8, roughness: 0.3, metalness: 0.2, emissive: 0xf0ede8, emissiveIntensity: 0.08 });
+  const nodePositions = [
+    [-3, 0, -2], [-1, 0, -3], [1, 0, -2.5], [3, 0, -1],
+    [-2, 0, 1],  [0, 0, 2],   [2, 0, 1.5],  [-3, 0, 2.5],
+    [0, 2, -2],  [2, 3, 0],   [-1, 4, 1],   [1, 1, 2],
+  ];
+  nodePositions.forEach(([x, y, z]) => {
+    // Sphere node
+    const sphere = new THREE.Mesh(new THREE.SphereGeometry(0.08, 8, 8), nodeMat);
+    sphere.position.set(x, y, z); sphere.castShadow = true;
+    nodesGroup.add(sphere);
+    // Crosshair lines around node
+    const armLen = 0.25;
+    [[1,0,0],[-1,0,0],[0,1,0],[0,-1,0],[0,0,1],[0,0,-1]].forEach(([dx,dy,dz]) => {
+      const geo = new THREE.BufferGeometry().setFromPoints([
+        new THREE.Vector3(x, y, z),
+        new THREE.Vector3(x + dx*armLen, y + dy*armLen, z + dz*armLen)
+      ]);
+      nodesGroup.add(new THREE.Line(geo, new THREE.LineBasicMaterial({ color: 0x888880, transparent: true, opacity: 0.6 })));
+    });
+  });
+  group.add(nodesGroup);
+
+  // ── Layer 3: Curves / Spines ──────────────────────────────────────────────
+  const curvesGroup = new THREE.Group(); curvesGroup.name = 'layer_curves';
+  const curveMat = new THREE.LineBasicMaterial({ color: 0x00b4d8, transparent: true, opacity: 0.85 });
+  const curveMat2 = new THREE.LineBasicMaterial({ color: 0xf0ede8, transparent: true, opacity: 0.55 });
+
+  // Spine 1: ground-level arc threading lower nodes
+  const spine1pts = [
+    new THREE.Vector3(-3, 0.1, -2), new THREE.Vector3(-1, 0.3, -3),
+    new THREE.Vector3(1, 0.1, -2.5), new THREE.Vector3(3, 0.2, -1),
+    new THREE.Vector3(2, 0.1, 1.5), new THREE.Vector3(0, 0.2, 2),
+    new THREE.Vector3(-3, 0.1, 2.5),
+  ];
+  const splineCurve1 = new THREE.CatmullRomCurve3(spine1pts, false, 'catmullrom', 0.5);
+  const splineGeo1 = new THREE.BufferGeometry().setFromPoints(splineCurve1.getPoints(80));
+  curvesGroup.add(new THREE.Line(splineGeo1, curveMat));
+
+  // Spine 2: rising arc through upper nodes
+  const spine2pts = [
+    new THREE.Vector3(-1, 0.1, -3), new THREE.Vector3(0, 2, -2),
+    new THREE.Vector3(2, 3, 0), new THREE.Vector3(-1, 4, 1),
+    new THREE.Vector3(1, 1, 2),
+  ];
+  const splineCurve2 = new THREE.CatmullRomCurve3(spine2pts, false, 'catmullrom', 0.5);
+  const splineGeo2 = new THREE.BufferGeometry().setFromPoints(splineCurve2.getPoints(60));
+  curvesGroup.add(new THREE.Line(splineGeo2, curveMat2));
+
+  group.add(curvesGroup);
+
+  // ── Layer 4: Shapes / Hatches ─────────────────────────────────────────────
+  const shapesGroup = new THREE.Group(); shapesGroup.name = 'layer_shapes';
+
+  const matSolid = new THREE.MeshStandardMaterial({ color: 0xd0cdc8, roughness: 0.85, metalness: 0.05, transparent: true, opacity: 0.92 });
+  const accentMat = new THREE.MeshStandardMaterial({ color: 0xc0392b, roughness: 0.5, metalness: 0.3, emissive: 0xc0392b, emissiveIntensity: 0.15 });
+  const cyanMat = new THREE.MeshStandardMaterial({ color: 0x00b4d8, roughness: 0.4, metalness: 0.5, emissive: 0x00b4d8, emissiveIntensity: 0.1 });
+  const darkMat = new THREE.MeshStandardMaterial({ color: 0x666660, roughness: 0.9 });
+
+  // Main volume
+  const main = new THREE.Mesh(new THREE.BoxGeometry(4, 2.5, 3), matSolid);
+  main.position.set(-0.5, 1.55, 0); main.castShadow = true; main.receiveShadow = true;
+  shapesGroup.add(main);
+
+  // Tower
+  const tower = new THREE.Mesh(new THREE.BoxGeometry(1.2, 4, 1.2), darkMat);
+  tower.position.set(1.8, 2.3, -0.5); tower.castShadow = true;
+  shapesGroup.add(tower);
+
+  // Cantilever
+  const cant = new THREE.Mesh(new THREE.BoxGeometry(2.5, 0.2, 1.5), matSolid);
+  cant.position.set(0.8, 3.7, 0.5); cant.castShadow = true;
+  shapesGroup.add(cant);
+
+  // Fins (hatch representation)
+  for (let i = 0; i < 3; i++) {
+    const fin = new THREE.Mesh(new THREE.BoxGeometry(4.2, 0.12, 0.08), darkMat);
+    fin.position.set(-0.5, 0.9 + i * 0.8, 1.5);
+    shapesGroup.add(fin);
+  }
+
+  // Accent bars
+  const accentBar = new THREE.Mesh(new THREE.BoxGeometry(0.08, 4.2, 0.08), accentMat);
+  accentBar.position.set(-2.5, 2.4, -1.5);
+  shapesGroup.add(accentBar);
+
+  const cyanBar = new THREE.Mesh(new THREE.BoxGeometry(6.2, 0.06, 0.06), cyanMat);
+  cyanBar.position.set(0, 3.72, -1.6);
+  shapesGroup.add(cyanBar);
+
+  group.add(shapesGroup);
+
+  return group;
+}
+
+let mainModel = buildDefaultModel();
+scene.add(mainModel);
+document.getElementById('upload-zone').classList.add('hidden');
+
+// Wireframe
+let wireframeMode = false;
+window.toggleWireframe = function() {
+  wireframeMode = !wireframeMode;
+  scene.traverse(obj => {
+    if (obj.isMesh && obj.material) {
+      const mats = Array.isArray(obj.material) ? obj.material : [obj.material];
+      mats.forEach(m => m.wireframe = wireframeMode);
+    }
+  });
+};
+
+// ── Layer isolation ───────────────────────────────────────────────────────
+const LAYERS = ['grid', 'nodes', 'curves', 'shapes'];
+
+function getLayerGroup(name) {
+  let found = null;
+  scene.traverse(obj => { if (obj.name === 'layer_' + name) found = obj; });
+  return found;
+}
+
+window.setLayerVisible = function(name, visible) {
+  const g = getLayerGroup(name);
+  if (g) g.visible = visible;
+  const nameEl = document.getElementById('lname-' + name);
+  if (nameEl) nameEl.classList.toggle('active', visible);
+  // Clear solo state if manually toggling
+  document.getElementById('lsolo-' + name)?.classList.remove('solo');
+};
+
+let soloActive = null;
+window.soloLayer = function(name) {
+  const btn = document.getElementById('lsolo-' + name);
+  if (soloActive === name) {
+    // Unsolo: restore all layers
+    soloActive = null;
+    LAYERS.forEach(l => {
+      const g = getLayerGroup(l);
+      if (g) g.visible = true;
+      document.getElementById('lyr-' + l).checked = true;
+      document.getElementById('lname-' + l)?.classList.add('active');
+      document.getElementById('lsolo-' + l)?.classList.remove('solo');
+    });
+  } else {
+    // Solo this layer
+    soloActive = name;
+    LAYERS.forEach(l => {
+      const visible = l === name;
+      const g = getLayerGroup(l);
+      if (g) g.visible = visible;
+      document.getElementById('lyr-' + l).checked = visible;
+      document.getElementById('lname-' + l)?.classList.toggle('active', visible);
+      document.getElementById('lsolo-' + l)?.classList.toggle('solo', l === name);
+    });
+  }
+};
+
+let layerPanelOpen = false;
+window.toggleLayerPanel = function() {
+  layerPanelOpen = !layerPanelOpen;
+  document.getElementById('layer-panel').classList.toggle('open', layerPanelOpen);
+  const btn = document.getElementById('layer-toggle-btn');
+  btn.textContent = layerPanelOpen ? 'Layers ↑' : 'Layers ↓';
+  btn.classList.toggle('active', layerPanelOpen);
+};
+
+// Camera views
+const views = {
+  perspective: { pos: new THREE.Vector3(8, 6, 10), target: new THREE.Vector3(0, 1.5, 0) },
+  top:  { pos: new THREE.Vector3(0, 18, 0.001), target: new THREE.Vector3(0, 0, 0) },
+  front: { pos: new THREE.Vector3(0, 3, 14), target: new THREE.Vector3(0, 1.5, 0) },
+  side: { pos: new THREE.Vector3(14, 3, 0), target: new THREE.Vector3(0, 1.5, 0) },
+};
+
+function animateCameraTo(pos, target) {
+  const startPos = camera.position.clone();
+  const startTarget = controls.target.clone();
+  let t = 0; const dur = 60;
+  function step() {
+    t++;
+    const alpha = 1 - Math.pow(1 - t / dur, 3);
+    camera.position.lerpVectors(startPos, pos, alpha);
+    controls.target.lerpVectors(startTarget, target, alpha);
+    controls.update();
+    if (t < dur) requestAnimationFrame(step);
+  }
+  step();
+}
+
+window.setView = function(name, btn) {
+  document.querySelectorAll('.ctrl-btn').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  animateCameraTo(views[name].pos, views[name].target);
+  document.getElementById('view-mode-display').textContent = 'VIEW: ' + name.toUpperCase();
+  controls.autoRotate = (name === 'perspective');
+};
+
+window.resetCamera = function() {
+  animateCameraTo(views.perspective.pos, views.perspective.target);
+  controls.autoRotate = true;
+  document.getElementById('view-mode-display').textContent = 'VIEW: PERSPECTIVE';
+  document.querySelectorAll('.ctrl-btn').forEach((b,i) => b.classList.toggle('active', i===0));
+};
+
+// File upload
+document.getElementById('file-input').addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const url = URL.createObjectURL(file);
+  if (mainModel) { scene.remove(mainModel); mainModel = null; }
+
+  const fitModel = (model) => {
+    const box = new THREE.Box3().setFromObject(model);
+    const size = box.getSize(new THREE.Vector3());
+    const center = box.getCenter(new THREE.Vector3());
+    const scale = 5 / Math.max(size.x, size.y, size.z);
+    model.scale.setScalar(scale);
+    model.position.sub(center.multiplyScalar(scale));
+    model.position.y += size.y * scale * 0.5;
+  };
+
+  if (file.name.match(/\.(glb|gltf)$/i)) {
+    new GLTFLoader().load(url, (gltf) => { mainModel = gltf.scene; fitModel(mainModel); scene.add(mainModel); collectTimelineParts(mainModel); });
+  } else if (file.name.match(/\.obj$/i)) {
+    new OBJLoader().load(url, (obj) => { mainModel = obj; fitModel(mainModel); scene.add(mainModel); collectTimelineParts(mainModel); });
+  }
+});
+
+// Coordinate readout
+const raycaster = new THREE.Raycaster();
+const mouse = new THREE.Vector2();
+canvas.addEventListener('mousemove', (e) => {
+  const rect = canvas.getBoundingClientRect();
+  mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+  mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+  raycaster.setFromCamera(mouse, camera);
+  const hits = raycaster.intersectObjects(scene.children, true);
+  if (hits.length) {
+    const p = hits[0].point;
+    document.getElementById('coord-display').textContent = `X: ${p.x.toFixed(2)} Y: ${p.y.toFixed(2)} Z: ${p.z.toFixed(2)}`;
+  }
+});
+
+canvas.addEventListener('dblclick', () => {
+  animateCameraTo(views.perspective.pos, views.perspective.target);
+  controls.autoRotate = true;
+});
+
+// Resize
+const resize = () => {
+  const w = container.clientWidth, h = container.clientHeight;
+  renderer.setSize(w, h);
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+};
+resize();
+window.addEventListener('resize', resize);
+
+// ── TIMELINE ──────────────────────────────────────────────────────────────
+// Each phase defines which parts of the model are visible and their Y-scale.
+// Parts: 0=podium, 1=main, 2=tower, 3=cantilever, 4=fins(3), 5=accentBar, 6=cyanBar
+// timelineParts maps part index → mesh reference, built after model creation.
+
+const PHASES = [
+  {
+    name: 'Ground + Roof',
+    desc: 'Through grids and the In-between',
+    year: 0,
+    parts: [] // nothing
+  },
+  {
+    name: 'Foundation & Podium',
+    desc: 'Ground slab and base platform',
+    year: 1,
+    parts: [0] // podium
+  },
+  {
+    name: 'Primary Structure',
+    desc: 'Main volume & vertical core',
+    year: 2,
+    parts: [0, 1, 2] // podium + main + tower
+  },
+  {
+    name: 'Horizontal Extensions',
+    desc: 'Cantilever and floor plates',
+    year: 3,
+    parts: [0, 1, 2, 3, 4] // + cantilever + fins
+  },
+  {
+    name: 'Envelope & Skin',
+    desc: 'Facade system and cladding',
+    year: 4,
+    parts: [0, 1, 2, 3, 4, 5] // + red accent
+  },
+  {
+    name: 'Completion',
+    desc: 'Final state — all systems',
+    year: 5,
+    parts: [0, 1, 2, 3, 4, 5, 6] // full model
+  }
+];
+
+// Collect references to each named part after model creation
+let timelineParts = [];
+
+function collectTimelineParts(group) {
+  timelineParts = [];
+  group.children.forEach(child => timelineParts.push(child));
+}
+collectTimelineParts(mainModel);
+
+// Current interpolated phase value
+let tlValue = 0;
+let tlPlaying = false;
+let tlPlayRAF = null;
+let tlTimelineOpen = false;
+
+// Target scale-Y per part per phase (for grow-in effect)
+// We store original positions to restore them
+const originalStates = timelineParts.map(m => ({
+  scaleY: m.scale.y,
+  posY: m.position.y
+}));
+
+function applyTimeline(val) {
+  // val = 0..5 (float)
+  const phaseIdx = Math.floor(Math.min(val, 4.9999));
+  const frac = val - phaseIdx; // 0..1 blend into next phase
+
+  const currentParts = new Set(PHASES[phaseIdx].parts);
+  const nextParts = phaseIdx < 5 ? new Set(PHASES[phaseIdx + 1].parts) : currentParts;
+
+  timelineParts.forEach((mesh, i) => {
+    const inCurrent = currentParts.has(i);
+    const inNext = nextParts.has(i);
+
+    if (inCurrent) {
+      // fully present
+      mesh.visible = true;
+      mesh.scale.y = originalStates[i].scaleY;
+      mesh.position.y = originalStates[i].posY;
+    } else if (!inCurrent && inNext) {
+      // growing in from bottom during this transition
+      mesh.visible = true;
+      const growScale = THREE.MathUtils.clamp(frac, 0, 1);
+      mesh.scale.y = originalStates[i].scaleY * growScale;
+      // keep base anchored: shift position so bottom stays at ground
+      const origH = originalStates[i].scaleY;
+      const newH = origH * growScale;
+      const delta = (origH - newH) / 2;
+      mesh.position.y = originalStates[i].posY - delta;
+    } else {
+      // not yet built
+      mesh.visible = false;
+    }
+  });
+}
+
+function updateTimelineUI(val) {
+  const slider = document.getElementById('tl-slider');
+  const fill = document.getElementById('tl-line-fill');
+  const yearEl = document.getElementById('tl-year-val');
+  const phaseNameEl = document.getElementById('tl-phase-name');
+  const phaseDescEl = document.getElementById('tl-phase-desc');
+
+  slider.value = val;
+  const pct = (val / 5) * 100;
+  fill.style.width = pct + '%';
+
+  const phaseIdx = Math.round(val);
+  const phase = PHASES[Math.min(phaseIdx, 5)];
+  phaseNameEl.textContent = phase.name;
+  phaseDescEl.textContent = phase.desc;
+  yearEl.textContent = phase.year;
+
+  // Update node dots
+  document.querySelectorAll('.tl-node').forEach((node, i) => {
+    node.classList.remove('active', 'done');
+    if (i === phaseIdx) node.classList.add('active');
+    else if (i < phaseIdx) node.classList.add('done');
+  });
+}
+
+window.setPhase = function(idx) {
+  stopPlay();
+  tlValue = idx;
+  applyTimeline(tlValue);
+  updateTimelineUI(tlValue);
+};
+
+window.onSlider = function(val) {
+  stopPlay();
+  tlValue = parseFloat(val);
+  applyTimeline(tlValue);
+  updateTimelineUI(tlValue);
+};
+
+window.toggleTimeline = function() {
+  tlTimelineOpen = !tlTimelineOpen;
+  const panel = document.getElementById('timeline-panel');
+  const btn = document.getElementById('tl-toggle-btn');
+  panel.classList.toggle('open', tlTimelineOpen);
+  btn.textContent = tlTimelineOpen ? 'Timeline ↑' : 'Timeline ↓';
+  btn.classList.toggle('active', tlTimelineOpen);
+  if (tlTimelineOpen) {
+    applyTimeline(tlValue);
+    updateTimelineUI(tlValue);
+  } else {
+    // restore full model when closed
+    stopPlay();
+    timelineParts.forEach((mesh, i) => {
+      mesh.visible = true;
+      mesh.scale.y = originalStates[i].scaleY;
+      mesh.position.y = originalStates[i].posY;
+    });
+  }
+};
+
+function stopPlay() {
+  tlPlaying = false;
+  document.getElementById('tl-play-btn').textContent = '▶ Play';
+  if (tlPlayRAF) { cancelAnimationFrame(tlPlayRAF); tlPlayRAF = null; }
+}
+
+window.togglePlay = function() {
+  if (tlPlaying) { stopPlay(); return; }
+  tlPlaying = true;
+  document.getElementById('tl-play-btn').textContent = '⏸ Pause';
+  if (tlValue >= 5) tlValue = 0;
+  let last = null;
+  function tick(ts) {
+    if (!tlPlaying) return;
+    if (last === null) last = ts;
+    const dt = (ts - last) / 1000;
+    last = ts;
+    tlValue = Math.min(tlValue + dt * 0.6, 5); // full run ≈ 8s
+    applyTimeline(tlValue);
+    updateTimelineUI(tlValue);
+    if (tlValue < 5) {
+      tlPlayRAF = requestAnimationFrame(tick);
+    } else {
+      stopPlay();
+    }
+  }
+  tlPlayRAF = requestAnimationFrame(tick);
+};
+
+// Render loop
+</script>
+
+<script>
+const observer = new IntersectionObserver(
+  entries => entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); }),
+  { threshold: 0.1 }
+);
+document.querySelectorAll('.fade-up').forEach(el => observer.observe(el));
+</script>
+
+<script>
+// ── HERO CANVAS — Morphosis-style generative overlay ─────────────────────
+// Layers (bottom → top):
+//   L1  Rectilinear grid (faint white lines)
+//   L2  Point nodes at grid intersections (appear one-by-one)
+//   L3  Bezier curves connecting nodes → irregular organic forms
+//   L4  Intersection highlights where curves cross grid cells (accent colors)
+
+(function () {
+  const cvs = document.getElementById('hero-canvas');
+  const ctx = cvs.getContext('2d');
+
+  function resize() { cvs.width = cvs.offsetWidth; cvs.height = cvs.offsetHeight; }
+  resize();
+  window.addEventListener('resize', () => { resize(); rebuildScene(); });
+
+  // ── Palette ─────────────────────────────────────────────────────────────
+  const C = {
+    gridCoarse:  'rgba(240,237,232,0.18)',
+    gridMid:     'rgba(240,237,232,0.12)',
+    gridFine:    'rgba(240,237,232,0.07)',
+    gridStroke:  'rgba(240,237,232,0.32)',
+    node:        'rgba(240,237,232,0.7)',
+    nodeDim:     'rgba(240,237,232,0.22)',
+    nodeOff:     'rgba(240,237,232,0.12)',
+    curveA:      'rgba(240,237,232,0.50)',
+    curveB:      'rgba(240,237,232,0.32)',
+    hatch:       'rgba(240,237,232,',     // closed with alpha
+  };
+
+  // ── Scene data ───────────────────────────────────────────────────────────
+  let gridLayers  = [];
+  let nodes       = [];
+  let strands     = [];
+  let intCells    = [];   // hatch regions (clipped to strand hull)
+  let vol3D       = null; // 3D volumetric scene data
+
+  // ── Timing ~16s loop ────────────────────────────────────────────────────
+  const DUR = {
+    gc:        1200,
+    gm:        1600,
+    gf:        1800,
+    nodes:     2200,
+    curves:    2800,
+    intersect: 1800,
+    hold:      2400,
+    volume:    5000,  // 3D volumetric diagram
+    fade:      1800,
+  };
+
+  let phase = 'gc', phaseStart = performance.now();
+  let gcProg = 0, gmProg = 0, gfProg = 0;
+  let nodeReveal = 0, curveProg = 0, intReveal = 0, sceneAlpha = 1;
+  let volumeProg = 0; // 0→1 raises the 3D diagram
+
+  // Lynn: global time for animate-form drift
+  let globalT = 0;
+
+  // ── Helpers ──────────────────────────────────────────────────────────────
+  function rnd(a, b) { return a + Math.random() * (b - a); }
+  function ease(t)   { return t < 0.5 ? 2*t*t : -1+(4-2*t)*t; }
+
+  function cubicPt(p0, cp1, cp2, p1, t) {
+    const u = 1 - t;
+    return {
+      x: u*u*u*p0.x + 3*u*u*t*cp1.x + 3*u*t*t*cp2.x + t*t*t*p1.x,
+      y: u*u*u*p0.y + 3*u*u*t*cp1.y + 3*u*t*t*cp2.y + t*t*t*p1.y,
+    };
+  }
+
+  // Lynn: animated control point — drifts with time via a per-strand sine offset
+  function animatedCp(cp, seg, driftAmp, driftFreq, driftPhase, t) {
+    const drift = Math.sin(t * driftFreq + driftPhase) * driftAmp;
+    // Perpendicular to segment direction
+    const dx = seg.p1.x - seg.p0.x, dy = seg.p1.y - seg.p0.y;
+    const len = Math.hypot(dx, dy) || 1;
+    return {
+      x: cp.x + (-dy / len) * drift,
+      y: cp.y + ( dx / len) * drift,
+    };
+  }
+
+  // ── Build scene ──────────────────────────────────────────────────────────
+  function rebuildScene() {
+    const W = cvs.width, H = cvs.height;
+    const STEP0 = Math.round(Math.max(W, H) / 10);
+    const STEP1 = Math.round(STEP0 / 2);
+    const STEP2 = Math.round(STEP1 / 2);
+
+    // --- 3-level grid ---
+    function makeGrid(step) {
+      const lines = [], offX = (W % step) / 2, offY = (H % step) / 2;
+      for (let x = offX; x <= W + step; x += step)
+        lines.push({ x1: x, y1: 0, x2: x, y2: H });
+      for (let y = offY; y <= H + step; y += step)
+        lines.push({ x1: 0, y1: y, x2: W, y2: y });
+      for (let i = lines.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [lines[i], lines[j]] = [lines[j], lines[i]];
+      }
+      return lines;
+    }
+    const c0 = makeGrid(STEP0);
+    const c0set = new Set(c0.map(l => l.x1 === l.x2 ? 'v'+Math.round(l.x1) : 'h'+Math.round(l.y1)));
+    const c1all = makeGrid(STEP1);
+    const c1 = c1all.filter(l => !c0set.has(l.x1===l.x2 ? 'v'+Math.round(l.x1) : 'h'+Math.round(l.y1)));
+    const c1set = new Set(c1.map(l => l.x1===l.x2 ? 'v'+Math.round(l.x1) : 'h'+Math.round(l.y1)));
+    const c2all = makeGrid(STEP2);
+    const c2 = c2all.filter(l => { const k = l.x1===l.x2 ? 'v'+Math.round(l.x1) : 'h'+Math.round(l.y1); return !c0set.has(k) && !c1set.has(k); });
+    gridLayers = [c0, c1, c2];
+
+    // --- Nodes: mixed on-grid, jittered, free ---
+    nodes = [];
+    const total   = 40 + Math.floor(Math.random() * 20);
+    const nGrid   = Math.round(total * 0.30);
+    const nJitter = Math.round(total * 0.35);
+    const nFree   = total - nGrid - nJitter;
+
+    const allMidPts = [];
+    const s1ox = (W % STEP1) / 2, s1oy = (H % STEP1) / 2;
+    for (let x = s1ox; x < W; x += STEP1)
+      for (let y = s1oy; y < H; y += STEP1)
+        allMidPts.push({ x, y });
+    allMidPts.sort(() => Math.random() - 0.5);
+
+    for (let i = 0; i < Math.min(nGrid, allMidPts.length); i++)
+      nodes.push({ x: allMidPts[i].x, y: allMidPts[i].y, onGrid: true, delay: rnd(0, 0.8), connections: 0 });
+
+    const jitterPool = allMidPts.slice(nGrid);
+    for (let i = 0; i < Math.min(nJitter, jitterPool.length); i++) {
+      const base = jitterPool[i];
+      const ang  = rnd(0, Math.PI * 2), dist = rnd(STEP1 * 0.12, STEP1 * 0.45);
+      nodes.push({ x: base.x + Math.cos(ang)*dist, y: base.y + Math.sin(ang)*dist, onGrid: false, delay: rnd(0, 1.0), connections: 0 });
+    }
+    for (let i = 0; i < nFree; i++)
+      nodes.push({ x: rnd(W*0.05, W*0.95), y: rnd(H*0.05, H*0.95), onGrid: false, delay: rnd(0, 1.0), connections: 0 });
+    nodes.sort((a, b) => a.delay - b.delay);
+
+    // --- Strands: open bezier chains with size classes ---
+    strands = buildStrands(nodes, W, H, STEP1);
+
+    // Allen: tally connections per node (how many strands pass through it)
+    // Used to scale crosshair arm length — denser nodes have longer arms
+    nodes.forEach(n => n.connections = 0);
+    strands.forEach(st => st.pts.forEach(p => p.connections = (p.connections || 0) + 1));
+
+    // --- Hatch regions ---
+    intCells = computeHatchRegions(strands, STEP0, W, H);
+
+    // --- 3D volumetric scene ---
+    vol3D = build3DScene(strands, intCells, gridLayers, STEP0, W, H);
+  }
+
+  // ── Build closed bezier strands, every node covered by at least one ─────
+  function buildStrands(nodeList, W, H, baseStep) {
+    const result  = [];
+    const nStrands = 12 + Math.floor(Math.random() * 6);
+
+    const sizeClasses = [];
+    for (let i = 0; i < nStrands; i++) {
+      if (i < 4) sizeClasses.push('small');
+      else if (i < nStrands - 2) sizeClasses.push('medium');
+      else sizeClasses.push('large');
+    }
+    sizeClasses.sort(() => Math.random() - 0.5);
+
+    const sizeParams = {
+      small:  { nodes: [3, 4], rMult: [0.8, 1.4],  pull: 0.5,  strokeW: 0.65 },
+      medium: { nodes: [4, 6], rMult: [1.8, 3.2],  pull: 0.85, strokeW: 0.9  },
+      large:  { nodes: [5, 8], rMult: [3.5, 6.5],  pull: 1.25, strokeW: 1.1  },
+    };
+
+    // Track which nodes haven't been used yet — we'll prioritise these as
+    // strand starting points so every node ends up in at least one shape.
+    const uncovered = new Set(nodeList);
+
+    for (let s = 0; s < nStrands; s++) {
+      const cls   = sizeClasses[s];
+      const param = sizeParams[cls];
+      const maxLen = param.nodes[0] + Math.floor(Math.random() * (param.nodes[1] - param.nodes[0] + 1));
+      const pts = [];
+
+      // Start from an uncovered node if any remain, otherwise pick randomly
+      const pool = uncovered.size > 0 ? [...uncovered] : nodeList.slice();
+      pool.sort(() => Math.random() - 0.5);
+      pts.push(pool[0]);
+      uncovered.delete(pool[0]);
+
+      for (let k = 1; k < maxLen; k++) {
+        const last = pts[pts.length - 1];
+        const rMax = baseStep * param.rMult[1];
+        // Prefer uncovered nodes; fall back to any nearby node
+        let cands = nodeList.filter(n =>
+          n !== last && !pts.includes(n) &&
+          Math.hypot(n.x - last.x, n.y - last.y) < rMax &&
+          uncovered.has(n)
+        );
+        if (!cands.length) {
+          cands = nodeList.filter(n =>
+            n !== last && !pts.includes(n) &&
+            Math.hypot(n.x - last.x, n.y - last.y) < rMax
+          );
+        }
+        if (!cands.length) break;
+        cands.sort((a, b) => {
+          const da = Math.hypot(a.x - last.x, a.y - last.y);
+          const db = Math.hypot(b.x - last.x, b.y - last.y);
+          const bias = cls === 'large' ? (db - da) : (da - db);
+          return bias + (Math.random() - 0.5) * rMax * 0.6;
+        });
+        uncovered.delete(cands[0]);
+        pts.push(cands[0]);
+      }
+      if (pts.length < 3) continue;
+
+      const segs = [];
+      const driftFreq  = rnd(0.3, 0.7);
+      const driftPhase = rnd(0, Math.PI * 2);
+      const closedPts  = [...pts, pts[0]];
+      for (let i = 0; i < closedPts.length - 1; i++) {
+        const p0 = closedPts[i], p1 = closedPts[i + 1];
+        const dx = p1.x - p0.x, dy = p1.y - p0.y;
+        const len = Math.hypot(dx, dy) || 1;
+        const nx = -dy / len, ny = dx / len;
+        const pull1 = (Math.random() - 0.45) * param.pull;
+        const pull2 = (Math.random() - 0.45) * param.pull;
+        const cp1 = { x: p0.x + dx*0.33 + nx*len*pull1, y: p0.y + dy*0.33 + ny*len*pull1 };
+        const cp2 = { x: p0.x + dx*0.67 + nx*len*pull2, y: p0.y + dy*0.67 + ny*len*pull2 };
+        segs.push({
+          p0, cp1, cp2, p1,
+          driftAmp:   rnd(2, 8) * (cls === 'large' ? 1.8 : cls === 'small' ? 0.6 : 1.0),
+          driftFreq,
+          driftPhase: driftPhase + i * 0.4,
+        });
+      }
+      result.push({ pts, segs, colorIdx: s % 3, sizeClass: cls, strokeW: param.strokeW });
+    }
+
+    // Any nodes still uncovered get inserted into the nearest existing strand
+    uncovered.forEach(orphan => {
+      let bestStrand = null, bestDist = Infinity;
+      result.forEach(st => {
+        st.pts.forEach(p => {
+          const d = Math.hypot(p.x - orphan.x, p.y - orphan.y);
+          if (d < bestDist) { bestDist = d; bestStrand = st; }
+        });
+      });
+      if (!bestStrand) return;
+      // Insert after the closest existing node in that strand
+      let closestIdx = 0, closestD = Infinity;
+      bestStrand.pts.forEach((p, i) => {
+        const d = Math.hypot(p.x - orphan.x, p.y - orphan.y);
+        if (d < closestD) { closestD = d; closestIdx = i; }
+      });
+      bestStrand.pts.splice(closestIdx + 1, 0, orphan);
+
+      // Rebuild segs for this strand
+      bestStrand.segs = [];
+      const cp = [...bestStrand.pts, bestStrand.pts[0]];
+      const driftFreq  = rnd(0.3, 0.7);
+      const driftPhase = rnd(0, Math.PI * 2);
+      for (let i = 0; i < cp.length - 1; i++) {
+        const p0 = cp[i], p1 = cp[i + 1];
+        const dx = p1.x - p0.x, dy = p1.y - p0.y;
+        const len = Math.hypot(dx, dy) || 1;
+        const nx = -dy / len, ny = dx / len;
+        const pull1 = (Math.random() - 0.45) * 0.85;
+        const pull2 = (Math.random() - 0.45) * 0.85;
+        bestStrand.segs.push({
+          p0, cp1: { x: p0.x + dx*0.33 + nx*len*pull1, y: p0.y + dy*0.33 + ny*len*pull1 },
+          cp2: { x: p0.x + dx*0.67 + nx*len*pull2, y: p0.y + dy*0.67 + ny*len*pull2 }, p1,
+          driftAmp: rnd(2, 8), driftFreq, driftPhase: driftPhase + i * 0.4,
+        });
+      }
+    });
+
+    return result;
+  }
+
+  // ── Hatch regions: clip strictly to the closed bezier boundary ───────────
+  // Each strand is now a closed loop. We sample it at high resolution to get
+  // a dense polyline that exactly traces the curve boundary. The canvas clip()
+  // call uses this polyline — hatch lines are physically impossible to escape it.
+  const HATCH_ANGLES = [25, -45, 70, 0, -20, 55, -70, 10];
+
+  function computeHatchRegions(strandList, gridStep, W, H) {
+    const regions = [];
+    const offX = (W % gridStep) / 2, offY = (H % gridStep) / 2;
+
+    function segsCross(p1x,p1y,p2x,p2y,p3x,p3y,p4x,p4y) {
+      const d1x=p2x-p1x, d1y=p2y-p1y, d2x=p4x-p3x, d2y=p4y-p3y;
+      const denom = d1x*d2y - d1y*d2x;
+      if (Math.abs(denom) < 1e-10) return false;
+      const t = ((p3x-p1x)*d2y - (p3y-p1y)*d2x) / denom;
+      const u = ((p3x-p1x)*d1y - (p3y-p1y)*d1x) / denom;
+      return t >= 0 && t <= 1 && u >= 0 && u <= 1;
+    }
+
+    function segIntersectsRect(ax,ay,bx,by,rx,ry,rw,rh) {
+      if (ax>=rx&&ax<=rx+rw&&ay>=ry&&ay<=ry+rh) return true;
+      if (bx>=rx&&bx<=rx+rw&&by>=ry&&by<=ry+rh) return true;
+      return segsCross(ax,ay,bx,by, rx,ry,rx+rw,ry) ||
+             segsCross(ax,ay,bx,by, rx+rw,ry,rx+rw,ry+rh) ||
+             segsCross(ax,ay,bx,by, rx+rw,ry+rh,rx,ry+rh) ||
+             segsCross(ax,ay,bx,by, rx,ry+rh,rx,ry);
+    }
+
+    // Ray-cast point-in-polygon — returns true if (px,py) is inside poly
+    function pointInPoly(px, py, poly) {
+      let inside = false;
+      for (let i = 0, j = poly.length-1; i < poly.length; j = i++) {
+        const xi=poly[i].x, yi=poly[i].y, xj=poly[j].x, yj=poly[j].y;
+        if (((yi>py)!==(yj>py)) && px < (xj-xi)*(py-yi)/(yj-yi)+xi)
+          inside = !inside;
+      }
+      return inside;
+    }
+
+    strandList.forEach((strand, si) => {
+      if (strand.segs.length < 3) return;
+      if (Math.random() < 0.27) return;
+
+      const boundary = [];
+      strand.segs.forEach(seg => {
+        for (let s = 0; s < 32; s++)
+          boundary.push(cubicPt(seg.p0, seg.cp1, seg.cp2, seg.p1, s / 32));
+      });
+      if (boundary.length < 3) return;
+
+      let minX=Infinity, minY=Infinity, maxX=-Infinity, maxY=-Infinity;
+      for (const p of boundary) {
+        if (p.x<minX) minX=p.x; if (p.x>maxX) maxX=p.x;
+        if (p.y<minY) minY=p.y; if (p.y>maxY) maxY=p.y;
+      }
+
+      const colMin = Math.floor((minX-offX)/gridStep);
+      const colMax = Math.floor((maxX-offX)/gridStep);
+      const rowMin = Math.floor((minY-offY)/gridStep);
+      const rowMax = Math.floor((maxY-offY)/gridStep);
+
+      const touchedCells = [];
+      for (let col=colMin; col<=colMax; col++) {
+        for (let row=rowMin; row<=rowMax; row++) {
+          const rx=offX+col*gridStep, ry=offY+row*gridStep;
+
+          // Must be crossed by the boundary line
+          let crossed = false;
+          for (let k=0; k<boundary.length && !crossed; k++) {
+            const a=boundary[k], b=boundary[(k+1)%boundary.length];
+            if (segIntersectsRect(a.x,a.y,b.x,b.y,rx,ry,gridStep,gridStep))
+              crossed = true;
+          }
+          if (!crossed) continue;
+
+          // Exclude cells whose centre is strictly inside the closed shape —
+          // those are interior cells, not cells the curve stroke passes through
+          const ccx = rx + gridStep/2, ccy = ry + gridStep/2;
+          if (pointInPoly(ccx, ccy, boundary)) continue;
+
+          touchedCells.push({ x:rx, y:ry, w:gridStep, h:gridStep });
+        }
+      }
+
+      let cx=0, cy=0;
+      boundary.forEach(p=>{cx+=p.x;cy+=p.y;});
+      cx/=boundary.length; cy/=boundary.length;
+      let maxR=0;
+      boundary.forEach(p=>{const d=Math.hypot(p.x-cx,p.y-cy);if(d>maxR)maxR=d;});
+
+      const spacingBySize={small:5,medium:8,large:13};
+      regions.push({
+        boundary, touchedCells,
+        cx, cy, maxR,
+        angle:   HATCH_ANGLES[si%HATCH_ANGLES.length],
+        spacing: (spacingBySize[strand.sizeClass]||8)+(si%2)*2,
+        alpha:0, target:0.52+Math.random()*0.18, glowAlpha:0,
+      });
+    });
+    return regions;
+  }
+
+  // ── Draw: grid ───────────────────────────────────────────────────────────
+  function drawGrid(gcP, gmP, gfP) {
+    [[gcP, C.gridCoarse, 1.8], [gmP, C.gridMid, 1.0], [gfP, C.gridFine, 0.6]]
+      .forEach(([prog, col, lw], li) => {
+        if (prog <= 0) return;
+        const vis = Math.floor(prog * gridLayers[li].length);
+        ctx.strokeStyle = col; ctx.lineWidth = lw;
+        for (let i = 0; i < vis; i++) {
+          const l = gridLayers[li][i];
+          ctx.beginPath(); ctx.moveTo(l.x1, l.y1); ctx.lineTo(l.x2, l.y2); ctx.stroke();
+          if (li === 0 && i % 3 === 0) {
+            ctx.strokeStyle = C.gridStroke; ctx.lineWidth = 1.8;
+            ctx.beginPath(); ctx.moveTo(l.x1, l.y1); ctx.lineTo(l.x2, l.y2); ctx.stroke();
+            ctx.strokeStyle = col; ctx.lineWidth = lw;
+          }
+        }
+      });
+  }
+
+  // ── Draw: nodes ──────────────────────────────────────────────────────────
+  // revealFrac 0→1: each node has a .delay in [0,1]; it fades in when
+  // revealFrac crosses its delay threshold.  After the nodes phase, all
+  // nodes are fully visible (revealFrac is passed as 1).
+  // Allen: crosshair arm length scales with node.connections.
+  function drawNodes(revealFrac) {
+    nodes.forEach((nd, ni) => {
+      // Compute how far this node is into its own reveal
+      // delay is spread across [0, 0.85] so even the last node is mostly in
+      const t = Math.min(1, Math.max(0, (revealFrac - nd.delay) / 0.15));
+      if (t <= 0) return;
+      const isLatest = revealFrac < 1 && Math.abs(revealFrac - nd.delay) < 0.10;
+
+      ctx.save();
+      ctx.globalAlpha *= t;
+
+      if (!nd.onGrid) {
+        // off-grid: small rotated square
+        const size = 5 * t;
+        ctx.translate(nd.x, nd.y); ctx.rotate(Math.PI / 4);
+        ctx.strokeStyle = C.nodeOff; ctx.lineWidth = 0.75;
+        ctx.strokeRect(-size/2, -size/2, size, size);
+        ctx.fillStyle = C.nodeOff; ctx.fillRect(-1.2, -1.2, 2.4, 2.4);
+        ctx.restore(); return;
+      }
+
+      // outer ring
+      ctx.beginPath(); ctx.arc(nd.x, nd.y, (isLatest ? 8 : 5) * t, 0, Math.PI * 2);
+      ctx.strokeStyle = isLatest ? 'rgba(240,237,232,0.55)' : C.nodeDim;
+      ctx.lineWidth = 0.8; ctx.stroke();
+
+      // bright centre dot
+      ctx.beginPath(); ctx.arc(nd.x, nd.y, 2.2, 0, Math.PI * 2);
+      ctx.fillStyle = C.node; ctx.fill();
+
+      // Allen: crosshair — arm length grows with connection count
+      const arm = Math.min(24, 10 + (nd.connections || 0) * 5) * t;
+      ctx.strokeStyle = C.nodeDim; ctx.lineWidth = 0.55;
+      ctx.beginPath();
+      ctx.moveTo(nd.x - arm, nd.y); ctx.lineTo(nd.x + arm, nd.y);
+      ctx.moveTo(nd.x, nd.y - arm); ctx.lineTo(nd.x, nd.y + arm);
+      ctx.stroke();
+
+      ctx.restore();
+    });
+  }
+
+  // ── Draw: strands with Lynn animate-form drift ────────────────────────────
+  // During 'hold' phase, control points drift sinusoidally.
+  // driftWeight 0→1 fades the drift in after curves are fully drawn.
+  function drawStrands(curveProg, driftWeight) {
+    if (!strands.length) return;
+    const totalSegs = strands.reduce((s, st) => s + st.segs.length, 0);
+    const segsDrawn = curveProg * totalSegs;
+    let segIdx = 0;
+
+    strands.forEach((strand, si) => {
+      ctx.lineWidth   = strand.strokeW || 0.9;
+      ctx.strokeStyle = si % 2 === 0 ? C.curveA : C.curveB;
+      ctx.lineJoin    = 'round';
+
+      strand.segs.forEach(seg => {
+        if (segIdx >= segsDrawn) { segIdx++; return; }
+        const segFrac = Math.min(1, segsDrawn - segIdx);
+        segIdx++;
+
+        // Lynn: interpolate between static and drifted control points
+        let cp1 = seg.cp1, cp2 = seg.cp2;
+        if (driftWeight > 0) {
+          const dcp1 = animatedCp(seg.cp1, seg, seg.driftAmp, seg.driftFreq, seg.driftPhase, globalT);
+          const dcp2 = animatedCp(seg.cp2, seg, seg.driftAmp, seg.driftFreq, seg.driftPhase + 0.8, globalT);
+          cp1 = { x: seg.cp1.x + (dcp1.x - seg.cp1.x) * driftWeight, y: seg.cp1.y + (dcp1.y - seg.cp1.y) * driftWeight };
+          cp2 = { x: seg.cp2.x + (dcp2.x - seg.cp2.x) * driftWeight, y: seg.cp2.y + (dcp2.y - seg.cp2.y) * driftWeight };
+        }
+
+        ctx.beginPath(); ctx.moveTo(seg.p0.x, seg.p0.y);
+        const steps = 32, vis = Math.floor(segFrac * steps);
+        for (let s = 1; s <= vis; s++) {
+          const pt = cubicPt(seg.p0, cp1, cp2, seg.p1, s / steps);
+          ctx.lineTo(pt.x, pt.y);
+        }
+        ctx.stroke();
+
+        if (segFrac < 1 && segFrac > 0.02) {
+          const tip = cubicPt(seg.p0, cp1, cp2, seg.p1, segFrac);
+          ctx.beginPath(); ctx.arc(tip.x, tip.y, 1.5, 0, Math.PI * 2);
+          ctx.fillStyle = 'rgba(240,237,232,0.9)'; ctx.fill();
+        }
+      });
+    });
+  }
+
+  function drawHatches(revealFrac) {
+    const n = Math.min(intCells.length, Math.ceil(revealFrac * intCells.length));
+    for (let i = 0; i < n; i++) {
+      const region = intCells[i];
+      const regionFrac = Math.min(1, Math.max(0, revealFrac * intCells.length - i));
+      region.alpha += (region.target * regionFrac - region.alpha) * 0.07;
+      if (region.alpha < 0.005) continue;
+
+      const bnd = region.boundary;
+      if (!bnd || bnd.length < 3) continue;
+      const { cx, cy, maxR, touchedCells } = region;
+      const halfSpan = maxR * 1.05;
+      const angleRad = region.angle * Math.PI / 180;
+      const cos = Math.cos(angleRad), sin = Math.sin(angleRad);
+
+      // ── Pass 1: hatch lines clipped to the closed bezier boundary ──
+      ctx.save();
+      ctx.beginPath();
+      ctx.moveTo(bnd[0].x, bnd[0].y);
+      for (let k = 1; k < bnd.length; k++) ctx.lineTo(bnd[k].x, bnd[k].y);
+      ctx.closePath();
+      ctx.clip();
+      ctx.strokeStyle = C.hatch + region.alpha + ')';
+      ctx.lineWidth = 0.6;
+      const nLines = Math.ceil((halfSpan * 2) / region.spacing) + 2;
+      for (let s = -nLines; s <= nLines; s++) {
+        const ox = cx + (-sin) * s * region.spacing;
+        const oy = cy + ( cos) * s * region.spacing;
+        ctx.beginPath();
+        ctx.moveTo(ox + cos * -halfSpan, oy + sin * -halfSpan);
+        ctx.lineTo(ox + cos *  halfSpan, oy + sin *  halfSpan);
+        ctx.stroke();
+      }
+      ctx.restore();
+
+      // ── Pass 2: same hatch lines clipped to each touched grid cell ──
+      // Each cell is clipped independently so cells stay discrete.
+      if (touchedCells && touchedCells.length) {
+        const cellAlpha = region.alpha * 0.7; // slightly softer than the shape fill
+        for (const cell of touchedCells) {
+          // Compute hatch span from this cell's centre for correct alignment
+          const ccx = cell.x + cell.w / 2;
+          const ccy = cell.y + cell.h / 2;
+          const cellSpan = Math.hypot(cell.w, cell.h);
+          const cn = Math.ceil((cellSpan * 2) / region.spacing) + 2;
+          ctx.save();
+          ctx.beginPath();
+          ctx.rect(cell.x, cell.y, cell.w, cell.h);
+          ctx.clip();
+          ctx.strokeStyle = C.hatch + cellAlpha + ')';
+          ctx.lineWidth = 0.6;
+          for (let s = -cn; s <= cn; s++) {
+            const ox = ccx + (-sin) * s * region.spacing;
+            const oy = ccy + ( cos) * s * region.spacing;
+            ctx.beginPath();
+            ctx.moveTo(ox + cos * -cellSpan, oy + sin * -cellSpan);
+            ctx.lineTo(ox + cos *  cellSpan, oy + sin *  cellSpan);
+            ctx.stroke();
+          }
+          ctx.restore();
+        }
+      }
+
+      // ── White glow inside the closed boundary ──
+      const glowTarget = region.alpha * 0.50;
+      region.glowAlpha = (region.glowAlpha || 0) + (glowTarget - (region.glowAlpha || 0)) * 0.04;
+      if (region.glowAlpha > 0.004) {
+        ctx.save();
+        ctx.beginPath();
+        ctx.moveTo(bnd[0].x, bnd[0].y);
+        for (let k = 1; k < bnd.length; k++) ctx.lineTo(bnd[k].x, bnd[k].y);
+        ctx.closePath();
+        ctx.clip();
+        const grad = ctx.createRadialGradient(cx, cy, maxR * 0.40, cx, cy, maxR);
+        grad.addColorStop(0, 'rgba(240,237,232,0)');
+        grad.addColorStop(1, `rgba(240,237,232,${region.glowAlpha.toFixed(3)})`);
+        ctx.fillStyle = grad;
+        ctx.fillRect(cx - maxR, cy - maxR, maxR * 2, maxR * 2);
+        ctx.restore();
+      }
+    }
+  }
+
+  // ── 3D Volumetric diagram ─────────────────────────────────────────────────
+  // Isometric projection: x→right, y→into screen, z→up
+  // Canvas origin is centre of the hero canvas.
+  // iso(x, y, z) maps world coords to screen coords.
+
+  function build3DScene(strandList, hatchList, gLayers, step, W, H) {
+    // Grid beams: every coarse grid line becomes a linear volume (beam/slab)
+    // extruded upward. Height varies by position for rhythm.
+    const beams = [];
+    const beamH = step * 0.18; // thin slab height
+    gLayers[0].forEach((line, li) => {
+      const isV = line.x1 === line.x2;
+      const thick = step * 0.06;
+      const hOff = beamH * (0.4 + 0.6 * ((li * 0.618) % 1)); // golden ratio spread
+      beams.push({ line, isV, thick, h: hOff });
+    });
+
+    // Roof canopies: each strand becomes a swept arch connecting its nodes.
+    // We sample the boundary and lift it into a thin shell that peaks at the centroid.
+    const canopies = [];
+    strandList.forEach((strand, si) => {
+      if (strand.segs.length < 3) return;
+      const pts = [];
+      strand.segs.forEach(seg => {
+        for (let s = 0; s < 20; s++)
+          pts.push(cubicPt(seg.p0, seg.cp1, seg.cp2, seg.p1, s / 20));
+      });
+      let cx = 0, cy = 0;
+      pts.forEach(p => { cx += p.x; cy += p.y; });
+      cx /= pts.length; cy /= pts.length;
+      let maxR = 0;
+      pts.forEach(p => { const d = Math.hypot(p.x-cx, p.y-cy); if (d > maxR) maxR = d; });
+      // Peak height scales with size class and position
+      const peakH = maxR * (strand.sizeClass === 'large' ? 0.55 : strand.sizeClass === 'medium' ? 0.38 : 0.22);
+      canopies.push({ pts, cx, cy, maxR, peakH, colorIdx: strand.colorIdx });
+    });
+
+    // Masses: hatched regions become solid extruded volumes (buildings/programs)
+    // Height differs per region to produce programmatic variation.
+    const masses = [];
+    const massHeights = [0.28, 0.45, 0.60, 0.35, 0.72, 0.50, 0.40, 0.65, 0.30, 0.55, 0.42, 0.68];
+    hatchList.forEach((region, ri) => {
+      if (!region.boundary || region.boundary.length < 3) return;
+      const hFrac = massHeights[ri % massHeights.length] + rnd(-0.05, 0.05);
+      // Height based on maxR so bigger shapes are taller
+      const massH = region.maxR * hFrac * 0.9;
+      masses.push({ boundary: region.boundary, cx: region.cx, cy: region.cy, massH, ri });
+    });
+
+    return { beams, canopies, masses, W, H, step };
+  }
+
+  function drawVolume(prog) {
+    if (!vol3D) return;
+    const { beams, canopies, masses, W, H, step } = vol3D;
+    const t = ease(Math.min(1, prog));
+
+    // ── Single camera projection shared by every draw call ────────────────
+    // At t=0 → identity (exact top-down, pixel = world XY).
+    // At t=1 → oblique axonometric: X right, Y down, Z up-left.
+    //
+    // The camera tilts around the canvas centre so the scene stays centred.
+    // ONLY the z-direction appears and grows; x and y stay put.
+    //
+    //   screen.x = wx  +  wz * (-cos30 * t)
+    //   screen.y = wy  +  wz * (-sin30 * t)   ← negative = up on screen
+    //
+    // Ground-plane points (wz=0): screen = (wx, wy). Always. Never move.
+
+    const zx = -0.866 * t;
+    const zy = -0.500 * t;
+    function P(wx, wy, wz) {
+      return { x: wx + wz * zx, y: wy + wz * zy };
+    }
+
+    // ─── 1. GRID — every line becomes a thin raised slab ─────────────────
+    // Coarse lines extrude to varying heights; mid/fine stay flat.
+    [[1, C.gridCoarse, 1.6, true], [1, C.gridMid, 0.9, false], [1, C.gridFine, 0.5, false]]
+      .forEach(([prog, col, lw, extrude], li) => {
+        gridLayers[li].forEach((l, li2) => {
+          const isV  = l.x1 === l.x2;
+          const bh   = extrude ? beams.find(b => b.line === l)?.h * t ?? 0 : 0;
+          const thick = extrude ? step * 0.055 : 0;
+          const hw    = thick / 2;
+
+          if (extrude && bh > 0.5) {
+            // Draw top edge of the extruded beam
+            const hw2 = hw;
+            if (isV) {
+              const x = l.x1;
+              // Two top-edge lines (front face top)
+              const tl = P(x - hw2, l.y1, bh), tr = P(x + hw2, l.y1, bh);
+              const bl2 = P(x - hw2, l.y2, bh), br2 = P(x + hw2, l.y2, bh);
+              ctx.beginPath();
+              ctx.moveTo(tl.x, tl.y); ctx.lineTo(bl2.x, bl2.y);
+              ctx.moveTo(tr.x, tr.y); ctx.lineTo(br2.x, br2.y);
+              ctx.strokeStyle = `rgba(240,237,232,${(0.12 + t*0.10).toFixed(3)})`;
+              ctx.lineWidth = lw * 0.6; ctx.stroke();
+              // Vertical edges at endpoints
+              [[x - hw2, l.y1],[x + hw2, l.y1],[x - hw2, l.y2],[x + hw2, l.y2]].forEach(([ex, ey]) => {
+                const bot = P(ex, ey, 0), top = P(ex, ey, bh);
+                ctx.beginPath(); ctx.moveTo(bot.x, bot.y); ctx.lineTo(top.x, top.y);
+                ctx.strokeStyle = `rgba(240,237,232,${(0.08 + t*0.08).toFixed(2)})`;
+                ctx.lineWidth = 0.3; ctx.stroke();
+              });
+            } else {
+              const y = l.y1;
+              const tl = P(l.x1, y - hw2, bh), tr = P(l.x2, y - hw2, bh);
+              const bl2 = P(l.x1, y + hw2, bh), br2 = P(l.x2, y + hw2, bh);
+              ctx.beginPath();
+              ctx.moveTo(tl.x, tl.y); ctx.lineTo(tr.x, tr.y);
+              ctx.moveTo(bl2.x, bl2.y); ctx.lineTo(br2.x, br2.y);
+              ctx.strokeStyle = `rgba(240,237,232,${(0.12 + t*0.10).toFixed(3)})`;
+              ctx.lineWidth = lw * 0.6; ctx.stroke();
+              [[l.x1, y - hw2],[l.x2, y - hw2],[l.x1, y + hw2],[l.x2, y + hw2]].forEach(([ex, ey]) => {
+                const bot = P(ex, ey, 0), top = P(ex, ey, bh);
+                ctx.beginPath(); ctx.moveTo(bot.x, bot.y); ctx.lineTo(top.x, top.y);
+                ctx.strokeStyle = `rgba(240,237,232,${(0.08 + t*0.08).toFixed(2)})`;
+                ctx.lineWidth = 0.3; ctx.stroke();
+              });
+            }
+          }
+
+          // Ground-level line (z=0 — same screen position as 2D)
+          const a = P(l.x1, l.y1, 0), b = P(l.x2, l.y2, 0);
+          ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y);
+          ctx.strokeStyle = col; ctx.lineWidth = lw; ctx.stroke();
+        });
+      });
+
+    // ─── 2. HATCHES → extruded masses ────────────────────────────────────
+    const sortedMasses = masses.slice().sort((a, b) => (b.cx + b.cy) - (a.cx + a.cy));
+    sortedMasses.forEach(({ boundary, cx, cy, massH }) => {
+      const mh = massH * t;
+      const bnd = boundary;
+
+      // Hatch lines on top face (replace flat hatching)
+      ctx.save();
+      const topPoly = bnd.map(p => P(p.x, p.y, mh));
+      ctx.beginPath();
+      topPoly.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
+      ctx.closePath();
+      ctx.clip();
+      // Simple horizontal hatch on top face
+      const spacing = 8;
+      let mnY = Infinity, mxY = -Infinity;
+      topPoly.forEach(p => { if (p.y < mnY) mnY = p.y; if (p.y > mxY) mxY = p.y; });
+      ctx.strokeStyle = `rgba(240,237,232,${(0.18 + t * 0.10).toFixed(3)})`;
+      ctx.lineWidth = 0.5;
+      for (let hy = mnY; hy <= mxY; hy += spacing) {
+        let mnX = Infinity, mxX = -Infinity;
+        topPoly.forEach((p, i) => {
+          const q = topPoly[(i+1) % topPoly.length];
+          if ((p.y <= hy && q.y > hy) || (q.y <= hy && p.y > hy)) {
+            const xi = p.x + (hy - p.y) / (q.y - p.y) * (q.x - p.x);
+            if (xi < mnX) mnX = xi; if (xi > mxX) mxX = xi;
+          }
+        });
+        if (mnX < mxX) { ctx.beginPath(); ctx.moveTo(mnX, hy); ctx.lineTo(mxX, hy); ctx.stroke(); }
+      }
+      ctx.restore();
+
+      // Side faces (front-facing only)
+      for (let k = 0; k < bnd.length; k++) {
+        const a = bnd[k], b = bnd[(k + 1) % bnd.length];
+        const nx = b.y - a.y, ny = -(b.x - a.x);
+        if (t > 0.04 && nx * zx + ny * zy >= 0) continue;
+        const bl = P(a.x, a.y, 0),  br = P(b.x, b.y, 0);
+        const tl = P(a.x, a.y, mh), tr = P(b.x, b.y, mh);
+        ctx.beginPath();
+        ctx.moveTo(bl.x, bl.y); ctx.lineTo(tl.x, tl.y);
+        ctx.lineTo(tr.x, tr.y); ctx.lineTo(br.x, br.y);
+        ctx.closePath();
+        const shade = 0.04 + 0.07 * Math.abs(nx / (Math.hypot(nx, ny) || 1));
+        ctx.fillStyle   = `rgba(240,237,232,${shade.toFixed(3)})`;
+        ctx.fill();
+        ctx.strokeStyle = `rgba(240,237,232,${(0.18 + t * 0.10).toFixed(3)})`;
+        ctx.lineWidth   = 0.4; ctx.stroke();
+      }
+
+      // Top face outline
+      ctx.beginPath();
+      topPoly.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
+      ctx.closePath();
+      ctx.strokeStyle = `rgba(240,237,232,${(0.30 + t * 0.10).toFixed(3)})`;
+      ctx.lineWidth   = 0.6; ctx.stroke();
+    });
+
+    // ─── 3. STRANDS → canopy roofs ────────────────────────────────────────
+    const sortedCanopies = canopies.slice().sort((a, b) => (b.cx + b.cy) - (a.cx + a.cy));
+    sortedCanopies.forEach(({ pts, cx, cy, peakH }) => {
+      const ph   = peakH * t;
+      const peak = P(cx, cy, ph);
+
+      // Ground ring (z=0 — same as 2D strand outline, never moves)
+      ctx.beginPath();
+      pts.forEach((p, i) => { const sp = P(p.x, p.y, 0); i === 0 ? ctx.moveTo(sp.x, sp.y) : ctx.lineTo(sp.x, sp.y); });
+      ctx.closePath();
+      ctx.strokeStyle = C.curveA; ctx.lineWidth = 0.8; ctx.stroke();
+
+      if (t > 0.05) {
+        // Radial ribs from ground ring to apex
+        ctx.strokeStyle = `rgba(240,237,232,${(t * 0.25).toFixed(3)})`;
+        ctx.lineWidth = 0.5;
+        for (let k = 0; k < pts.length; k += 5) {
+          const sp = P(pts[k].x, pts[k].y, 0);
+          ctx.beginPath(); ctx.moveTo(sp.x, sp.y); ctx.lineTo(peak.x, peak.y); ctx.stroke();
+        }
+        // Mid-height contour ring
+        ctx.beginPath();
+        pts.forEach((p, i) => {
+          const sp = P(p.x + (cx-p.x)*0.5, p.y + (cy-p.y)*0.5, ph * 0.45);
+          i === 0 ? ctx.moveTo(sp.x, sp.y) : ctx.lineTo(sp.x, sp.y);
+        });
+        ctx.closePath();
+        ctx.strokeStyle = `rgba(240,237,232,${(t * 0.16).toFixed(3)})`;
+        ctx.lineWidth = 0.35; ctx.stroke();
+      }
+    });
+
+    // ─── 4. NODES — pinned to ground, crosshairs tilt with camera ─────────
+    nodes.forEach(nd => {
+      const sp = P(nd.x, nd.y, 0); // z=0, never moves
+      if (nd.onGrid) {
+        ctx.beginPath(); ctx.arc(sp.x, sp.y, 5, 0, Math.PI * 2);
+        ctx.strokeStyle = C.nodeDim; ctx.lineWidth = 0.8; ctx.stroke();
+        ctx.beginPath(); ctx.arc(sp.x, sp.y, 2.2, 0, Math.PI * 2);
+        ctx.fillStyle = C.node; ctx.fill();
+        const arm = Math.min(24, 10 + (nd.connections||0)*5);
+        // Crosshair arms along the projected axes
+        const ax = P(nd.x + arm, nd.y, 0), bx = P(nd.x - arm, nd.y, 0);
+        const ay = P(nd.x, nd.y + arm, 0), by = P(nd.x, nd.y - arm, 0);
+        ctx.beginPath();
+        ctx.moveTo(bx.x, bx.y); ctx.lineTo(ax.x, ax.y);
+        ctx.moveTo(by.x, by.y); ctx.lineTo(ay.x, ay.y);
+        ctx.strokeStyle = C.nodeDim; ctx.lineWidth = 0.55; ctx.stroke();
+      } else {
+        const size = 5;
+        ctx.save(); ctx.translate(sp.x, sp.y); ctx.rotate(Math.PI/4);
+        ctx.strokeStyle = C.nodeOff; ctx.lineWidth = 0.75;
+        ctx.strokeRect(-size/2, -size/2, size, size);
+        ctx.fillStyle = C.nodeOff; ctx.fillRect(-1.2, -1.2, 2.4, 2.4);
+        ctx.restore();
+      }
+    });
+  }
+
+  // ── Phase machine ─────────────────────────────────────────────────────────
+  function advancePhase(now, dt) {
+    const el = now - phaseStart;
+
+    // Lynn: increment global time only during hold phase (when drift is visible)
+    if (phase === 'hold' || phase === 'fade') globalT += dt;
+
+    switch (phase) {
+      case 'gc':
+        gcProg = ease(Math.min(1, el / DUR.gc));
+        if (el > DUR.gc) next('gm', now); break;
+      case 'gm':
+        gcProg = 1; gmProg = ease(Math.min(1, el / DUR.gm));
+        if (el > DUR.gm) next('gf', now); break;
+      case 'gf':
+        gmProg = 1; gfProg = ease(Math.min(1, el / DUR.gf));
+        if (el > DUR.gf) next('nodes', now); break;
+      case 'nodes':
+        gfProg = 1; nodeReveal = Math.min(1, el / DUR.nodes);
+        if (el > DUR.nodes) { nodeReveal = 1; next('curves', now); } break;
+      case 'curves':
+        curveProg = Math.min(1, el / DUR.curves);
+        if (el > DUR.curves) { curveProg = 1; next('intersect', now); } break;
+      case 'intersect':
+        intReveal = Math.min(1, el / DUR.intersect);
+        if (el > DUR.intersect) { intReveal = 1; next('hold', now); } break;
+      case 'hold':
+        if (el > DUR.hold) next('volume', now); break;
+      case 'volume':
+        volumeProg = ease(Math.min(1, el / DUR.volume));
+        if (el > DUR.volume) next('fade', now); break;
+      case 'fade':
+        sceneAlpha = Math.max(0, 1 - ease(Math.min(1, el / DUR.fade)));
+        if (el > DUR.fade) {
+          sceneAlpha = 1; gcProg = gmProg = gfProg = 0;
+          nodeReveal = curveProg = intReveal = volumeProg = 0;
+          intCells.forEach(c => { c.alpha = 0; c.glowAlpha = 0; });
+          globalT = 0;
+          rebuildScene(); next('gc', now);
+        } break;
+    }
+  }
+
+  function next(name, now) { phase = name; phaseStart = now; }
+
+  // ── Render loop ───────────────────────────────────────────────────────────
+  let lastNow = performance.now();
+  function render(now) {
+    requestAnimationFrame(render);
+    const dt = Math.min((now - lastNow) / 1000, 0.05);
+    lastNow = now;
+
+    const W = cvs.width, H = cvs.height;
+    ctx.clearRect(0, 0, W, H);
+    advancePhase(now, dt);
+
+    // Lynn: drift fades in during hold, stays through fade
+    const driftWeight = (phase === 'hold')
+      ? ease(Math.min(1, (now - phaseStart) / (DUR.hold * 0.4)))
+      : (phase === 'fade' ? 1 : 0);
+
+    const afterGrid   = phase !== 'gc' && phase !== 'gm' && phase !== 'gf';
+    const afterNodes  = afterGrid && phase !== 'nodes';
+    const afterCurves = afterNodes && phase !== 'curves';
+    const inVolume    = phase === 'volume' || phase === 'fade';
+
+    ctx.save();
+    ctx.globalAlpha = sceneAlpha;
+
+    if (!inVolume) {
+      // ── 2D flat diagram ──
+      drawGrid(gcProg, gmProg, gfProg);
+      if (afterCurves) drawHatches(intReveal);
+      if (afterNodes)  drawStrands(curveProg, driftWeight);
+      if (afterGrid)   drawNodes(afterNodes ? 1 : nodeReveal);
+    } else {
+      // ── Volume phase: drawVolume redraws EVERYTHING through the same
+      // camera transform — grid, nodes, strands, hatches, volumes all tilt
+      // together as one scene. At t=0 it's pixel-identical to the 2D view.
+      drawVolume(volumeProg);
+    }
+
+    ctx.restore();
+  }
+
+  rebuildScene();
+  requestAnimationFrame(render);
+})();
+</script>
+
+</body>
+</html>
