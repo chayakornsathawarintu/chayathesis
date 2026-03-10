@@ -684,28 +684,28 @@
 <section id="hero">
   <canvas id="hero-canvas"></canvas>
   <div class="hero-bg-text">FORM</div>
-  <div class="hero-coords fade-up">34°03'N 118°14'W</div>
+  <div class="hero-coords fade-up">34°03'N 118°14'W — PROJECT SITE</div>
   <h1 class="hero-title fade-up">
-    In-Between<br>
-    <em>the</em><br>
-    <span class="accent-word">Vertizontality</span>
+    Threshold<br>
+    <em>of the</em><br>
+    <span class="accent-word">Unmade</span>
   </h1>
   <div class="hero-meta fade-up">
     <div class="hero-meta-item">
       <span class="hero-meta-label">Student</span>
-      <span class="hero-meta-value">CHAYAKORN SATHAWARINTU</span>
+      <span class="hero-meta-value">YOUR NAME</span>
     </div>
     <div class="hero-meta-item">
       <span class="hero-meta-label">Advisor</span>
-      <span class="hero-meta-value">JACKILIN BLOOM</span>
+      <span class="hero-meta-value">ADVISOR NAME</span>
     </div>
     <div class="hero-meta-item">
       <span class="hero-meta-label">Institution</span>
-      <span class="hero-meta-value">SCI_Arc</span>
+      <span class="hero-meta-value">UNIVERSITY</span>
     </div>
     <div class="hero-meta-item">
       <span class="hero-meta-label">Year</span>
-      <span class="hero-meta-value">2026</span>
+      <span class="hero-meta-value">2025</span>
     </div>
   </div>
   <div class="hero-scroll">
@@ -718,7 +718,7 @@
   <div class="viewer-header fade-up">
     <div>
       <div class="section-label">// 01 — Interactive Model</div>
-      <h2 class="viewer-title">Volumetric Configuration</h2>
+      <h2 class="viewer-title">Spatial Configuration</h2>
     </div>
     <div class="viewer-instructions">
       <span>Drag</span> to orbit &nbsp;·&nbsp; <span>Scroll</span> to zoom<br>
@@ -843,7 +843,7 @@
   </div>
 
 </section>
-  <div class="section-label fade-up">// 02 — Drawings</div>
+  <div class="section-label fade-up">// 02 — Technical Drawings</div>
   <div class="drawings-grid fade-up">
 
     <div class="drawing-cell">
@@ -961,7 +961,7 @@
 
 <section id="program">
   <div class="program-text fade-up">
-    <div class="section-label">// 03 — Thesis &amp; Concept</div>
+    <div class="section-label">// 03 — Program &amp; Concept</div>
     <h2>Architecture as<br><em>negotiated ground</em></h2>
     <p>
       The project investigates the <strong>liminal space between structure and void</strong> —
@@ -1005,7 +1005,7 @@
 </section>
 
 <section id="process">
-  <div class="section-label fade-up">// 04 — Process</div>
+  <div class="section-label fade-up">// 04 — Design Process</div>
   <div class="process-grid fade-up">
     <div class="process-step">
       <div class="step-accent"></div>
@@ -1036,12 +1036,12 @@
 
 <footer>
   <div class="footer-left">
-    M.ARCH1 — 2026<br>
-    <span>●</span> Chayakorn Sathawarintu · Southern California Institute of Architecture<br>
+    ARCH THESIS — 2025<br>
+    <span>●</span> YOUR NAME · YOUR UNIVERSITY<br>
     Built for GitHub Pages
   </div>
   <div class="footer-right">
-    "THESIS"
+    "Form is never more than an extension of content."
   </div>
 </footer>
 
@@ -1392,8 +1392,8 @@ window.addEventListener('resize', resize);
 
 const PHASES = [
   {
-    name: 'Roof + Ground Condition',
-    desc: 'And the In-Between',
+    name: 'Site Clearing',
+    desc: 'Existing conditions & survey',
     year: 0,
     parts: [] // nothing
   },
@@ -1597,7 +1597,6 @@ document.querySelectorAll('.fade-up').forEach(el => observer.observe(el));
   const cvs = document.getElementById('hero-canvas');
   const ctx = cvs.getContext('2d');
 
-  // ── Sizing ──────────────────────────────────────────────────────────────
   function resize() { cvs.width = cvs.offsetWidth; cvs.height = cvs.offsetHeight; }
   resize();
   window.addEventListener('resize', () => { resize(); rebuildScene(); });
@@ -1607,47 +1606,43 @@ document.querySelectorAll('.fade-up').forEach(el => observer.observe(el));
     gridCoarse:  'rgba(240,237,232,0.18)',
     gridMid:     'rgba(240,237,232,0.12)',
     gridFine:    'rgba(240,237,232,0.07)',
-    gridStroke:  'rgba(240,237,232,0.32)',   // accent heavy lines
+    gridStroke:  'rgba(240,237,232,0.32)',
     node:        'rgba(240,237,232,0.7)',
     nodeDim:     'rgba(240,237,232,0.22)',
-    nodeOff:     'rgba(240,237,232,0.12)',   // off-grid nodes
+    nodeOff:     'rgba(240,237,232,0.12)',
     curveA:      'rgba(240,237,232,0.50)',
     curveB:      'rgba(240,237,232,0.32)',
-    hatch:       'rgba(240,237,232,',        // hatching — closed with alpha
+    hatch:       'rgba(240,237,232,',     // closed with alpha
   };
 
   // ── Scene data ───────────────────────────────────────────────────────────
-  let gridLayers   = [];   // 3-level grid
-  let nodes        = [];   // all placed nodes
-  let spines       = [];   // 1-3 long open curves threading all nodes
-  let strands      = [];   // closed shapes branching from spines
-  let intCells     = [];   // hatch regions
+  let gridLayers  = [];
+  let nodes       = [];
+  let strands     = [];
+  let intCells    = [];   // hatch regions (clipped to strand hull)
 
-  // ── Timing — total loop ≈ 16 s ──────────────────────────────────────────
+  // ── Timing ~16s loop ────────────────────────────────────────────────────
   const DUR = {
     gc:        1200,
     gm:        1600,
     gf:        1800,
     nodes:     2200,
-    spines:    2500,   // long continuous curves thread all nodes
-    curves:    2800,   // closed shapes branch from spines
+    curves:    2800,
     intersect: 1800,
-    hold:      2200,
+    hold:      2400,
     fade:      1200,
   };
 
-  let phase = 'gc';
-  let phaseStart = performance.now();
+  let phase = 'gc', phaseStart = performance.now();
   let gcProg = 0, gmProg = 0, gfProg = 0;
-  let nodeReveal = 0;
-  let spineProg  = 0;
-  let curveProg  = 0;
-  let intReveal  = 0;
-  let sceneAlpha = 1;
+  let nodeReveal = 0, curveProg = 0, intReveal = 0, sceneAlpha = 1;
+
+  // Lynn: global time for animate-form drift
+  let globalT = 0;
 
   // ── Helpers ──────────────────────────────────────────────────────────────
   function rnd(a, b) { return a + Math.random() * (b - a); }
-  function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+  function ease(t)   { return t < 0.5 ? 2*t*t : -1+(4-2*t)*t; }
 
   function cubicPt(p0, cp1, cp2, p1, t) {
     const u = 1 - t;
@@ -1657,457 +1652,310 @@ document.querySelectorAll('.fade-up').forEach(el => observer.observe(el));
     };
   }
 
+  // Lynn: animated control point — drifts with time via a per-strand sine offset
+  function animatedCp(cp, seg, driftAmp, driftFreq, driftPhase, t) {
+    const drift = Math.sin(t * driftFreq + driftPhase) * driftAmp;
+    // Perpendicular to segment direction
+    const dx = seg.p1.x - seg.p0.x, dy = seg.p1.y - seg.p0.y;
+    const len = Math.hypot(dx, dy) || 1;
+    return {
+      x: cp.x + (-dy / len) * drift,
+      y: cp.y + ( dx / len) * drift,
+    };
+  }
+
   // ── Build scene ──────────────────────────────────────────────────────────
   function rebuildScene() {
     const W = cvs.width, H = cvs.height;
+    const STEP0 = Math.round(Math.max(W, H) / 10);
+    const STEP1 = Math.round(STEP0 / 2);
+    const STEP2 = Math.round(STEP1 / 2);
 
-    // --- Grid: 3 levels of subdivision ---
-    // Level 0 (coarse): large modules ~W/5
-    // Level 1 (mid):    half of coarse
-    // Level 2 (fine):   half of mid  →  quarter of coarse
-
-    const STEP0 = Math.round(Math.max(W, H) / 4.5);   // coarse: ~4-5 cells
-    const STEP1 = Math.round(STEP0 / 2);               // mid
-    const STEP2 = Math.round(STEP1 / 2);               // fine
-
-    function makeGridLines(step, W, H) {
-      const lines = [];
-      const offX = ((W % step) / 2);
-      const offY = ((H % step) / 2);
+    // --- 3-level grid ---
+    function makeGrid(step) {
+      const lines = [], offX = (W % step) / 2, offY = (H % step) / 2;
       for (let x = offX; x <= W + step; x += step)
-        lines.push({ x1: x, y1: 0, x2: x, y2: H, axis: 'v', step });
+        lines.push({ x1: x, y1: 0, x2: x, y2: H });
       for (let y = offY; y <= H + step; y += step)
-        lines.push({ x1: 0, y1: y, x2: W, y2: y, axis: 'h', step });
-      // shuffle so lines draw in random order
+        lines.push({ x1: 0, y1: y, x2: W, y2: y });
       for (let i = lines.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
         [lines[i], lines[j]] = [lines[j], lines[i]];
       }
       return lines;
     }
+    const c0 = makeGrid(STEP0);
+    const c0set = new Set(c0.map(l => l.x1 === l.x2 ? 'v'+Math.round(l.x1) : 'h'+Math.round(l.y1)));
+    const c1all = makeGrid(STEP1);
+    const c1 = c1all.filter(l => !c0set.has(l.x1===l.x2 ? 'v'+Math.round(l.x1) : 'h'+Math.round(l.y1)));
+    const c1set = new Set(c1.map(l => l.x1===l.x2 ? 'v'+Math.round(l.x1) : 'h'+Math.round(l.y1)));
+    const c2all = makeGrid(STEP2);
+    const c2 = c2all.filter(l => { const k = l.x1===l.x2 ? 'v'+Math.round(l.x1) : 'h'+Math.round(l.y1); return !c0set.has(k) && !c1set.has(k); });
+    gridLayers = [c0, c1, c2];
 
-    // Coarse lines
-    const coarseLines = makeGridLines(STEP0, W, H);
-
-    // Mid lines = all lines at STEP1 that are NOT already a coarse line
-    // (i.e. only the new subdivisions)
-    const coarseSet = new Set();
-    coarseLines.forEach(l => {
-      if (l.axis === 'v') coarseSet.add('v' + Math.round(l.x1));
-      else coarseSet.add('h' + Math.round(l.y1));
-    });
-    const allMid = makeGridLines(STEP1, W, H);
-    const midLines = allMid.filter(l => {
-      const key = l.axis === 'v' ? 'v' + Math.round(l.x1) : 'h' + Math.round(l.y1);
-      return !coarseSet.has(key);
-    });
-
-    // Fine lines = STEP2 minus coarse and mid
-    const midSet = new Set(midLines.map(l =>
-      l.axis === 'v' ? 'v' + Math.round(l.x1) : 'h' + Math.round(l.y1)));
-    const allFine = makeGridLines(STEP2, W, H);
-    const fineLines = allFine.filter(l => {
-      const key = l.axis === 'v' ? 'v' + Math.round(l.x1) : 'h' + Math.round(l.y1);
-      return !coarseSet.has(key) && !midSet.has(key);
-    });
-
-    gridLayers = [coarseLines, midLines, fineLines];
-
-    // --- Nodes ---
-    // Fewer nodes so every one can live on a spine curve.
-    // 12–18 total, mixed grid/jitter/free for variety.
+    // --- Nodes: mixed on-grid, jittered, free ---
     nodes = [];
-
-    const total   = 12 + Math.floor(Math.random() * 7); // 12–18
+    const total   = 40 + Math.floor(Math.random() * 20);
     const nGrid   = Math.round(total * 0.30);
     const nJitter = Math.round(total * 0.35);
     const nFree   = total - nGrid - nJitter;
 
     const allMidPts = [];
-    const step1offX = (W % STEP1) / 2;
-    const step1offY = (H % STEP1) / 2;
-    for (let x = step1offX; x < W; x += STEP1)
-      for (let y = step1offY; y < H; y += STEP1)
+    const s1ox = (W % STEP1) / 2, s1oy = (H % STEP1) / 2;
+    for (let x = s1ox; x < W; x += STEP1)
+      for (let y = s1oy; y < H; y += STEP1)
         allMidPts.push({ x, y });
     allMidPts.sort(() => Math.random() - 0.5);
 
     for (let i = 0; i < Math.min(nGrid, allMidPts.length); i++)
-      nodes.push({ x: allMidPts[i].x, y: allMidPts[i].y, onGrid: true, delay: rnd(0, 0.8) });
+      nodes.push({ x: allMidPts[i].x, y: allMidPts[i].y, onGrid: true, delay: rnd(0, 0.8), connections: 0 });
 
     const jitterPool = allMidPts.slice(nGrid);
     for (let i = 0; i < Math.min(nJitter, jitterPool.length); i++) {
       const base = jitterPool[i];
-      const ang = rnd(0, Math.PI * 2);
-      const dist = rnd(STEP1 * 0.12, STEP1 * 0.45);
-      nodes.push({ x: base.x + Math.cos(ang) * dist, y: base.y + Math.sin(ang) * dist, onGrid: false, delay: rnd(0, 1.0) });
+      const ang  = rnd(0, Math.PI * 2), dist = rnd(STEP1 * 0.12, STEP1 * 0.45);
+      nodes.push({ x: base.x + Math.cos(ang)*dist, y: base.y + Math.sin(ang)*dist, onGrid: false, delay: rnd(0, 1.0), connections: 0 });
     }
-
     for (let i = 0; i < nFree; i++)
-      nodes.push({ x: rnd(W * 0.05, W * 0.95), y: rnd(H * 0.05, H * 0.95), onGrid: false, delay: rnd(0, 1.0) });
-
+      nodes.push({ x: rnd(W*0.05, W*0.95), y: rnd(H*0.05, H*0.95), onGrid: false, delay: rnd(0, 1.0), connections: 0 });
     nodes.sort((a, b) => a.delay - b.delay);
 
-    // --- Spines: 1-3 long open curves threading ALL nodes ---
-    spines = buildSpines(nodes, W, H);
+    // --- Strands: open bezier chains with size classes ---
+    strands = buildStrands(nodes, W, H, STEP1);
 
-    // --- Closed shapes branching from spine nodes ---
-    strands = buildStrands(nodes, spines, W, H, STEP1);
+    // Allen: tally connections per node (how many strands pass through it)
+    // Used to scale crosshair arm length — denser nodes have longer arms
+    nodes.forEach(n => n.connections = 0);
+    strands.forEach(st => st.pts.forEach(p => p.connections = (p.connections || 0) + 1));
 
-    // --- Intersection hatch regions ---
-    intCells = computeIntersections(strands);
+    // --- Hatch regions ---
+    intCells = computeHatchRegions(strands);
   }
 
-  // ── Build spines threading EVERY node ────────────────────────────────────
-  // Nodes are partitioned into spatially coherent groups using k-means style
-  // seeding: each spine gets a seed node spread across the canvas, then every
-  // remaining node joins its nearest seed's group. NN-chain within each
-  // group guarantees no crossings since nodes are already spatially compact.
-  function buildSpines(nodeList, W, H) {
-    if (nodeList.length < 2) return [];
-
-    const nSpines = 1 + Math.floor(Math.random() * 3); // 1–3
+  // ── Build closed bezier strands, every node covered by at least one ─────
+  function buildStrands(nodeList, W, H, baseStep) {
     const result  = [];
-
-    if (nodeList.length < nSpines * 2) {
-      // Not enough nodes to split — single spine through all
-      return [makeSpine(nodeList, 0)].filter(Boolean);
-    }
-
-    // Spread seed nodes evenly by picking the node furthest from all current seeds
-    const seeds = [nodeList[Math.floor(Math.random() * nodeList.length)]];
-    while (seeds.length < nSpines) {
-      let best = null, bestD = -1;
-      for (const n of nodeList) {
-        const d = Math.min(...seeds.map(s => Math.hypot(n.x - s.x, n.y - s.y)));
-        if (d > bestD) { bestD = d; best = n; }
-      }
-      if (best) seeds.push(best);
-    }
-
-    // Assign every node to nearest seed group
-    const groups = seeds.map(() => []);
-    for (const n of nodeList) {
-      let bestI = 0, bestD = Infinity;
-      seeds.forEach((s, i) => {
-        const d = Math.hypot(n.x - s.x, n.y - s.y);
-        if (d < bestD) { bestD = d; bestI = i; }
-      });
-      groups[bestI].push(n);
-    }
-
-    // Build a spine for each group
-    groups.forEach((group, gi) => {
-      const spine = makeSpine(group, gi);
-      if (spine) result.push(spine);
-    });
-
-    return result;
-  }
-
-  // NN-chain through a group of nodes → clean non-crossing open curve
-  function makeSpine(group, spineIdx) {
-    if (group.length < 2) return null;
-
-    const visited = new Set();
-    const chain   = [];
-    let cur = group[Math.floor(Math.random() * group.length)];
-    visited.add(cur); chain.push(cur);
-
-    while (visited.size < group.length) {
-      let best = null, bestD = Infinity;
-      for (const n of group) {
-        if (visited.has(n)) continue;
-        const d = Math.hypot(n.x - cur.x, n.y - cur.y);
-        if (d < bestD) { bestD = d; best = n; }
-      }
-      if (!best) break;
-      visited.add(best); chain.push(best); cur = best;
-    }
-
-    if (chain.length < 2) return null;
-    chain.forEach((n, idx) => { n.spineIdx = spineIdx; n.spinePos = idx; });
-
-    // Smooth flowing bezier segs: tangent at each node = direction prev→next
-    // scaled by a tension factor. This gives genuine curvature that flows
-    // through every node rather than nearly-straight angular segments.
-    const segs = [];
-    const tension = 0.35; // 0=straight, 0.5=full Catmull-Rom — 0.35 is smooth but not wild
-    for (let i = 0; i < chain.length - 1; i++) {
-      const p0   = chain[i], p1 = chain[i + 1];
-      const prev = chain[Math.max(0, i - 1)];
-      const next = chain[Math.min(chain.length - 1, i + 2)];
-      // Tangent at p0: direction from prev to next, scaled by tension × seg length
-      const segLen = Math.hypot(p1.x - p0.x, p1.y - p0.y);
-      const t0len  = Math.hypot(next.x - prev.x, next.y - prev.y) || 1;
-      const t0x = (next.x - prev.x) / t0len * segLen * tension;
-      const t0y = (next.y - prev.y) / t0len * segLen * tension;
-      // Tangent at p1: direction from p0 to node after p1
-      const next1  = chain[Math.min(chain.length - 1, i + 2)];
-      const t1len  = Math.hypot(next1.x - p0.x, next1.y - p0.y) || 1;
-      const t1x = (next1.x - p0.x) / t1len * segLen * tension;
-      const t1y = (next1.y - p0.y) / t1len * segLen * tension;
-      segs.push({
-        p0,
-        cp1: { x: p0.x + t0x, y: p0.y + t0y },
-        cp2: { x: p1.x - t1x, y: p1.y - t1y },
-        p1,
-      });
-    }
-    return { nodes: chain, segs, spineIdx };
-  }
-
-  // ── Build closed bezier shapes branching from spine windows ─────────────
-  // Each shape uses a contiguous slice of spine nodes (guaranteed on-spine).
-  // Overlap prevented by grid-cell claiming + centroid distance checks.
-  function buildStrands(nodeList, spineList, W, H, baseStep) {
-    const result  = [];
-    const spineSrc = spineList.length ? spineList : [{ nodes: nodeList }];
-
-    const nShapes = 4 + Math.floor(Math.random() * 7); // 4-10
+    const nStrands = 12 + Math.floor(Math.random() * 6);
 
     const sizeClasses = [];
-    for (let i = 0; i < nShapes; i++) {
-      if (i < 2) sizeClasses.push('small');
-      else if (i < nShapes - 1) sizeClasses.push('medium');
+    for (let i = 0; i < nStrands; i++) {
+      if (i < 4) sizeClasses.push('small');
+      else if (i < nStrands - 2) sizeClasses.push('medium');
       else sizeClasses.push('large');
     }
     sizeClasses.sort(() => Math.random() - 0.5);
 
     const sizeParams = {
-      small:  { window: [4, 6], extraR: 1.2,  pull: 0.18, strokeW: 0.65, minGap: baseStep * 1.0 },
-      medium: { window: [3, 5], extraR: 1.0,  pull: 0.22, strokeW: 0.9,  minGap: baseStep * 1.4 },
-      large:  { window: [4, 7], extraR: 1.6,  pull: 0.26, strokeW: 1.1,  minGap: baseStep * 2.0 },
+      small:  { nodes: [3, 4], rMult: [0.8, 1.4],  pull: 0.5,  strokeW: 0.65 },
+      medium: { nodes: [4, 6], rMult: [1.8, 3.2],  pull: 0.85, strokeW: 0.9  },
+      large:  { nodes: [5, 8], rMult: [3.5, 6.5],  pull: 1.25, strokeW: 1.1  },
     };
 
-    // All possible (spine, start, wl) windows, shuffled
-    const allWindows = [];
-    for (const spine of spineSrc) {
-      const sn = spine.nodes;
-      for (let start = 0; start <= sn.length - 3; start++) {
-        for (let wl = 3; wl <= Math.min(8, sn.length - start); wl++) {
-          allWindows.push({ spine, start, wl });
-        }
-      }
-    }
-    allWindows.sort(() => Math.random() - 0.5);
+    // Track which nodes haven't been used yet — we'll prioritise these as
+    // strand starting points so every node ends up in at least one shape.
+    const uncovered = new Set(nodeList);
 
-    const cellCols = 5, cellRows = 4;
-    const cellW = W / cellCols, cellH = H / cellRows;
-    const claimedCells = new Set();
-    const placed = [];
-    let shapeIdx = 0;
-
-    for (const win of allWindows) {
-      if (result.length >= nShapes) break;
-
-      const cls   = sizeClasses[shapeIdx % sizeClasses.length];
+    for (let s = 0; s < nStrands; s++) {
+      const cls   = sizeClasses[s];
       const param = sizeParams[cls];
+      const maxLen = param.nodes[0] + Math.floor(Math.random() * (param.nodes[1] - param.nodes[0] + 1));
+      const pts = [];
 
-      if (win.wl < param.window[0] || win.wl > param.window[1]) continue;
+      // Start from an uncovered node if any remain, otherwise pick randomly
+      const pool = uncovered.size > 0 ? [...uncovered] : nodeList.slice();
+      pool.sort(() => Math.random() - 0.5);
+      pts.push(pool[0]);
+      uncovered.delete(pool[0]);
 
-      const window = win.spine.nodes.slice(win.start, win.start + win.wl);
-      if (window.length < 3) continue;
-
-      const anchor = window[Math.floor(window.length / 2)];
-      const extra  = nodeList
-        .filter(n => !window.includes(n) && Math.hypot(n.x - anchor.x, n.y - anchor.y) < baseStep * param.extraR)
-        .sort(() => Math.random() - 0.5)
-        .slice(0, 2);
-
-      const cluster = [...window, ...extra];
-      if (cluster.length < 3) continue;
-
-      const pts = convexHull(cluster);
+      for (let k = 1; k < maxLen; k++) {
+        const last = pts[pts.length - 1];
+        const rMax = baseStep * param.rMult[1];
+        // Prefer uncovered nodes; fall back to any nearby node
+        let cands = nodeList.filter(n =>
+          n !== last && !pts.includes(n) &&
+          Math.hypot(n.x - last.x, n.y - last.y) < rMax &&
+          uncovered.has(n)
+        );
+        if (!cands.length) {
+          cands = nodeList.filter(n =>
+            n !== last && !pts.includes(n) &&
+            Math.hypot(n.x - last.x, n.y - last.y) < rMax
+          );
+        }
+        if (!cands.length) break;
+        cands.sort((a, b) => {
+          const da = Math.hypot(a.x - last.x, a.y - last.y);
+          const db = Math.hypot(b.x - last.x, b.y - last.y);
+          const bias = cls === 'large' ? (db - da) : (da - db);
+          return bias + (Math.random() - 0.5) * rMax * 0.6;
+        });
+        uncovered.delete(cands[0]);
+        pts.push(cands[0]);
+      }
       if (pts.length < 3) continue;
 
-      const cx = pts.reduce((s, p) => s + p.x, 0) / pts.length;
-      const cy = pts.reduce((s, p) => s + p.y, 0) / pts.length;
-      const radius = pts.reduce((m, p) => Math.max(m, Math.hypot(p.x - cx, p.y - cy)), 0);
-
-      const col = Math.floor(cx / cellW), row = Math.floor(cy / cellH);
-      const cellKey = `${col},${row}`;
-      if (claimedCells.has(cellKey)) continue;
-
-      if (placed.some(p => Math.hypot(cx - p.cx, cy - p.cy) < radius + p.radius + param.minGap)) continue;
-
-      claimedCells.add(cellKey);
-      placed.push({ cx, cy, radius });
-
       const segs = [];
-      const N = pts.length;
-      for (let i = 0; i < N; i++) {
-        const p0 = pts[i], p1 = pts[(i + 1) % N];
-        const mx = (p0.x + p1.x) / 2, my = (p0.y + p1.y) / 2;
-        const odx = mx - cx, ody = my - cy;
-        const olen = Math.hypot(odx, ody) || 1;
-        const segLen = Math.hypot(p1.x - p0.x, p1.y - p0.y);
-        const cpx = mx + (odx / olen) * param.pull * segLen;
-        const cpy = my + (ody / olen) * param.pull * segLen;
-        segs.push({ p0, cp1: { x: cpx, y: cpy }, cp2: { x: cpx, y: cpy }, p1 });
+      const driftFreq  = rnd(0.3, 0.7);
+      const driftPhase = rnd(0, Math.PI * 2);
+      const closedPts  = [...pts, pts[0]];
+      for (let i = 0; i < closedPts.length - 1; i++) {
+        const p0 = closedPts[i], p1 = closedPts[i + 1];
+        const dx = p1.x - p0.x, dy = p1.y - p0.y;
+        const len = Math.hypot(dx, dy) || 1;
+        const nx = -dy / len, ny = dx / len;
+        const pull1 = (Math.random() - 0.45) * param.pull;
+        const pull2 = (Math.random() - 0.45) * param.pull;
+        const cp1 = { x: p0.x + dx*0.33 + nx*len*pull1, y: p0.y + dy*0.33 + ny*len*pull1 };
+        const cp2 = { x: p0.x + dx*0.67 + nx*len*pull2, y: p0.y + dy*0.67 + ny*len*pull2 };
+        segs.push({
+          p0, cp1, cp2, p1,
+          driftAmp:   rnd(2, 8) * (cls === 'large' ? 1.8 : cls === 'small' ? 0.6 : 1.0),
+          driftFreq,
+          driftPhase: driftPhase + i * 0.4,
+        });
       }
-
-      result.push({ pts, segs, colorIdx: shapeIdx % 3, sizeClass: cls, strokeW: param.strokeW });
-      shapeIdx++;
+      result.push({ pts, segs, colorIdx: s % 3, sizeClass: cls, strokeW: param.strokeW });
     }
+
+    // Any nodes still uncovered get inserted into the nearest existing strand
+    uncovered.forEach(orphan => {
+      let bestStrand = null, bestDist = Infinity;
+      result.forEach(st => {
+        st.pts.forEach(p => {
+          const d = Math.hypot(p.x - orphan.x, p.y - orphan.y);
+          if (d < bestDist) { bestDist = d; bestStrand = st; }
+        });
+      });
+      if (!bestStrand) return;
+      // Insert after the closest existing node in that strand
+      let closestIdx = 0, closestD = Infinity;
+      bestStrand.pts.forEach((p, i) => {
+        const d = Math.hypot(p.x - orphan.x, p.y - orphan.y);
+        if (d < closestD) { closestD = d; closestIdx = i; }
+      });
+      bestStrand.pts.splice(closestIdx + 1, 0, orphan);
+
+      // Rebuild segs for this strand
+      bestStrand.segs = [];
+      const cp = [...bestStrand.pts, bestStrand.pts[0]];
+      const driftFreq  = rnd(0.3, 0.7);
+      const driftPhase = rnd(0, Math.PI * 2);
+      for (let i = 0; i < cp.length - 1; i++) {
+        const p0 = cp[i], p1 = cp[i + 1];
+        const dx = p1.x - p0.x, dy = p1.y - p0.y;
+        const len = Math.hypot(dx, dy) || 1;
+        const nx = -dy / len, ny = dx / len;
+        const pull1 = (Math.random() - 0.45) * 0.85;
+        const pull2 = (Math.random() - 0.45) * 0.85;
+        bestStrand.segs.push({
+          p0, cp1: { x: p0.x + dx*0.33 + nx*len*pull1, y: p0.y + dy*0.33 + ny*len*pull1 },
+          cp2: { x: p0.x + dx*0.67 + nx*len*pull2, y: p0.y + dy*0.67 + ny*len*pull2 }, p1,
+          driftAmp: rnd(2, 8), driftFreq, driftPhase: driftPhase + i * 0.4,
+        });
+      }
+    });
+
     return result;
   }
 
-    // ── Compute hatch regions from strand shapes ─────────────────────────────
-  // For each strand, densely sample its bezier chain, compute the convex hull
-  // of those points, then store that closed polygon + hatch metadata.
-  // Hatching is clipped to the hull so it stays inside the form.
-
+  // ── Hatch regions: clip strictly to the closed bezier boundary ───────────
+  // Each strand is now a closed loop. We sample it at high resolution to get
+  // a dense polyline that exactly traces the curve boundary. The canvas clip()
+  // call uses this polyline — hatch lines are physically impossible to escape it.
   const HATCH_ANGLES = [25, -45, 70, 0, -20, 55, -70, 10];
 
-  // Graham scan convex hull
-  function convexHull(pts) {
-    if (pts.length < 3) return pts.slice();
-    const sorted = pts.slice().sort((a, b) => a.x !== b.x ? a.x - b.x : a.y - b.y);
-    const cross = (O, A, B) => (A.x - O.x) * (B.y - O.y) - (A.y - O.y) * (B.x - O.x);
-    const lower = [];
-    for (const p of sorted) {
-      while (lower.length >= 2 && cross(lower[lower.length-2], lower[lower.length-1], p) <= 0)
-        lower.pop();
-      lower.push(p);
-    }
-    const upper = [];
-    for (let i = sorted.length - 1; i >= 0; i--) {
-      const p = sorted[i];
-      while (upper.length >= 2 && cross(upper[upper.length-2], upper[upper.length-1], p) <= 0)
-        upper.pop();
-      upper.push(p);
-    }
-    upper.pop(); lower.pop();
-    return lower.concat(upper);
-  }
-
-  // ── Compute hatch regions — clip polygon = actual bezier outline ──────────
-  // We sample the closed bezier chain densely enough to get a smooth polygon
-  // that exactly matches the drawn shape. Hatching is clipped to this real
-  // outline, so it can never bleed outside the visible curve.
-
-  function computeIntersections(strandList) {
+  function computeHatchRegions(strandList) {
     const regions = [];
     strandList.forEach((strand, si) => {
-      if (!strand.segs.length) return;
+      if (strand.segs.length < 3) return; // closed loop needs ≥3 segments
 
-      // Sample the closed bezier loop into a dense polyline
-      // Use enough steps per seg that the polygon closely hugs the curve
-      const outline = [];
+      // Randomly leave ~25-30% of shapes unhatched for a less uniform look
+      if (Math.random() < 0.27) return;
+      const boundary = [];
       strand.segs.forEach(seg => {
-        const steps = 48;
-        // Skip the last point of each seg (it == first point of next seg)
-        for (let s = 0; s < steps; s++) {
-          outline.push(cubicPt(seg.p0, seg.cp1, seg.cp2, seg.p1, s / steps));
-        }
+        for (let s = 0; s < 32; s++) // 32 steps per seg, no duplicate endpoints
+          boundary.push(cubicPt(seg.p0, seg.cp1, seg.cp2, seg.p1, s / 32));
       });
-      if (outline.length < 3) return;
+      if (boundary.length < 3) return;
 
-      // Hatch spacing by size class
-      const spacingBySize = { small: 5, medium: 9, large: 14 };
-      const spacing = (spacingBySize[strand.sizeClass] || 9) + (si % 2) * 2;
+      // Centroid and maxR for glow gradient
+      let cx = 0, cy = 0;
+      boundary.forEach(p => { cx += p.x; cy += p.y; });
+      cx /= boundary.length; cy /= boundary.length;
+      let maxR = 0;
+      boundary.forEach(p => { const d = Math.hypot(p.x-cx, p.y-cy); if (d > maxR) maxR = d; });
 
+      const spacingBySize = { small: 5, medium: 8, large: 13 };
       regions.push({
-        outline,                                      // exact bezier boundary
-        angle: HATCH_ANGLES[si % HATCH_ANGLES.length],
-        spacing,
-        alpha: 0,
-        target: 0.55 + Math.random() * 0.2,
+        boundary, // closed polyline tracing the exact bezier curve
+        cx, cy, maxR,
+        angle:   HATCH_ANGLES[si % HATCH_ANGLES.length],
+        spacing: (spacingBySize[strand.sizeClass] || 8) + (si % 2) * 2,
+        alpha:   0,
+        target:  0.52 + Math.random() * 0.18,
+        glowAlpha: 0,
       });
     });
-
-    regions.sort(() => Math.random() - 0.5);
     return regions;
   }
 
-  // ── Draw grid with 3-level reveal ────────────────────────────────────────
+  // ── Draw: grid ───────────────────────────────────────────────────────────
   function drawGrid(gcP, gmP, gfP) {
-    // Coarse
-    const gcVis = Math.floor(gcP * gridLayers[0].length);
-    ctx.lineWidth = 1.8;
-    for (let i = 0; i < gcVis; i++) {
-      const l = gridLayers[0][i];
-      ctx.strokeStyle = C.gridCoarse;
-      ctx.beginPath(); ctx.moveTo(l.x1, l.y1); ctx.lineTo(l.x2, l.y2); ctx.stroke();
-      // heavier stroke on every ~3rd coarse line
-      if (i % 3 === 0) {
-        ctx.strokeStyle = C.gridStroke;
-        ctx.lineWidth = 1.8;
-        ctx.beginPath(); ctx.moveTo(l.x1, l.y1); ctx.lineTo(l.x2, l.y2); ctx.stroke();
-        ctx.lineWidth = 1.0;
-      }
-    }
-
-    // Mid
-    if (gmP > 0) {
-      const gmVis = Math.floor(gmP * gridLayers[1].length);
-      ctx.lineWidth = 1.0;
-      ctx.strokeStyle = C.gridMid;
-      for (let i = 0; i < gmVis; i++) {
-        const l = gridLayers[1][i];
-        ctx.beginPath(); ctx.moveTo(l.x1, l.y1); ctx.lineTo(l.x2, l.y2); ctx.stroke();
-      }
-    }
-
-    // Fine
-    if (gfP > 0) {
-      const gfVis = Math.floor(gfP * gridLayers[2].length);
-      ctx.lineWidth = 0.6;
-      ctx.strokeStyle = C.gridFine;
-      for (let i = 0; i < gfVis; i++) {
-        const l = gridLayers[2][i];
-        ctx.beginPath(); ctx.moveTo(l.x1, l.y1); ctx.lineTo(l.x2, l.y2); ctx.stroke();
-      }
-    }
+    [[gcP, C.gridCoarse, 1.8], [gmP, C.gridMid, 1.0], [gfP, C.gridFine, 0.6]]
+      .forEach(([prog, col, lw], li) => {
+        if (prog <= 0) return;
+        const vis = Math.floor(prog * gridLayers[li].length);
+        ctx.strokeStyle = col; ctx.lineWidth = lw;
+        for (let i = 0; i < vis; i++) {
+          const l = gridLayers[li][i];
+          ctx.beginPath(); ctx.moveTo(l.x1, l.y1); ctx.lineTo(l.x2, l.y2); ctx.stroke();
+          if (li === 0 && i % 3 === 0) {
+            ctx.strokeStyle = C.gridStroke; ctx.lineWidth = 1.8;
+            ctx.beginPath(); ctx.moveTo(l.x1, l.y1); ctx.lineTo(l.x2, l.y2); ctx.stroke();
+            ctx.strokeStyle = col; ctx.lineWidth = lw;
+          }
+        }
+      });
   }
 
-  // ── Draw nodes ───────────────────────────────────────────────────────────
+  // ── Draw: nodes ──────────────────────────────────────────────────────────
+  // revealFrac 0→1: each node has a .delay in [0,1]; it fades in when
+  // revealFrac crosses its delay threshold.  After the nodes phase, all
+  // nodes are fully visible (revealFrac is passed as 1).
+  // Allen: crosshair arm length scales with node.connections.
   function drawNodes(revealFrac) {
-    // revealFrac 0..1 — nodes appear staggered by their delay property
-    nodes.forEach((nd, i) => {
-      const localT = (revealFrac - nd.delay) / (1 - nd.delay + 0.001);
-      if (localT <= 0) return;
-      const t = Math.min(1, localT);
-      const alpha = t;
-      const isLatest = Math.abs(revealFrac - nd.delay) < 0.06;
-
-      // off-grid nodes are slightly different: diamond instead of circle
-      if (!nd.onGrid) {
-        const size = 4 * t;
-        ctx.save();
-        ctx.globalAlpha *= alpha * 0.85;
-        ctx.translate(nd.x, nd.y);
-        ctx.rotate(Math.PI / 4);
-        ctx.strokeStyle = C.nodeOff;
-        ctx.lineWidth = 0.75;
-        ctx.strokeRect(-size / 2, -size / 2, size, size);
-        ctx.fillStyle = C.nodeOff;
-        ctx.fillRect(-1, -1, 2, 2);
-        ctx.restore();
-        return;
-      }
+    nodes.forEach((nd, ni) => {
+      // Compute how far this node is into its own reveal
+      // delay is spread across [0, 0.85] so even the last node is mostly in
+      const t = Math.min(1, Math.max(0, (revealFrac - nd.delay) / 0.15));
+      if (t <= 0) return;
+      const isLatest = revealFrac < 1 && Math.abs(revealFrac - nd.delay) < 0.10;
 
       ctx.save();
-      ctx.globalAlpha *= alpha;
+      ctx.globalAlpha *= t;
 
-      // outer ring — pulsing on latest node
-      const ringR = isLatest ? 7 : 5;
-      ctx.beginPath();
-      ctx.arc(nd.x, nd.y, ringR * t, 0, Math.PI * 2);
-      ctx.strokeStyle = isLatest ? 'rgba(240,237,232,0.5)' : C.nodeDim;
-      ctx.lineWidth = 0.75;
-      ctx.stroke();
+      if (!nd.onGrid) {
+        // off-grid: small rotated square
+        const size = 5 * t;
+        ctx.translate(nd.x, nd.y); ctx.rotate(Math.PI / 4);
+        ctx.strokeStyle = C.nodeOff; ctx.lineWidth = 0.75;
+        ctx.strokeRect(-size/2, -size/2, size, size);
+        ctx.fillStyle = C.nodeOff; ctx.fillRect(-1.2, -1.2, 2.4, 2.4);
+        ctx.restore(); return;
+      }
 
-      // inner filled dot
-      ctx.beginPath();
-      ctx.arc(nd.x, nd.y, 1.6, 0, Math.PI * 2);
-      ctx.fillStyle = C.node;
-      ctx.fill();
+      // outer ring
+      ctx.beginPath(); ctx.arc(nd.x, nd.y, (isLatest ? 8 : 5) * t, 0, Math.PI * 2);
+      ctx.strokeStyle = isLatest ? 'rgba(240,237,232,0.55)' : C.nodeDim;
+      ctx.lineWidth = 0.8; ctx.stroke();
 
-      // crosshair
-      const arm = 9 * t;
-      ctx.strokeStyle = C.nodeDim;
-      ctx.lineWidth = 0.5;
+      // bright centre dot
+      ctx.beginPath(); ctx.arc(nd.x, nd.y, 2.2, 0, Math.PI * 2);
+      ctx.fillStyle = C.node; ctx.fill();
+
+      // Allen: crosshair — arm length grows with connection count
+      const arm = Math.min(24, 10 + (nd.connections || 0) * 5) * t;
+      ctx.strokeStyle = C.nodeDim; ctx.lineWidth = 0.55;
       ctx.beginPath();
       ctx.moveTo(nd.x - arm, nd.y); ctx.lineTo(nd.x + arm, nd.y);
       ctx.moveTo(nd.x, nd.y - arm); ctx.lineTo(nd.x, nd.y + arm);
@@ -2117,215 +1965,168 @@ document.querySelectorAll('.fade-up').forEach(el => observer.observe(el));
     });
   }
 
-  // ── Draw spines: long continuous curves through all nodes ────────────────
-  function drawSpines(progress) {
-    if (!spines.length) return;
-    const totalSegs = spines.reduce((s, sp) => s + sp.segs.length, 0);
-    const segsDrawn = progress * totalSegs;
-    let segIdx = 0;
-
-    spines.forEach((spine, si) => {
-      const alpha = si === 0 ? 0.55 : (si === 1 ? 0.40 : 0.30);
-      ctx.strokeStyle = `rgba(240,237,232,${alpha})`;
-      ctx.lineWidth = 1.2;
-      ctx.lineJoin = 'round';
-
-      spine.segs.forEach(seg => {
-        if (segIdx >= segsDrawn) { segIdx++; return; }
-        const segFrac = Math.min(1, segsDrawn - segIdx);
-        segIdx++;
-
-        ctx.beginPath();
-        ctx.moveTo(seg.p0.x, seg.p0.y);
-        const steps = 32;
-        const vis = Math.floor(segFrac * steps);
-        for (let s = 1; s <= vis; s++) {
-          const pt = cubicPt(seg.p0, seg.cp1, seg.cp2, seg.p1, s / steps);
-          ctx.lineTo(pt.x, pt.y);
-        }
-        ctx.stroke();
-
-        // Leading tip dot
-        if (segFrac < 1 && segFrac > 0.02) {
-          const tip = cubicPt(seg.p0, seg.cp1, seg.cp2, seg.p1, segFrac);
-          ctx.beginPath();
-          ctx.arc(tip.x, tip.y, 1.5, 0, Math.PI * 2);
-          ctx.fillStyle = 'rgba(240,237,232,0.9)';
-          ctx.fill();
-        }
-      });
-    });
-  }
-
-  // ── Draw strands — outline thickens as hatches reveal ────────────────────
-  function drawStrands(progress, hatchFrac) {
+  // ── Draw: strands with Lynn animate-form drift ────────────────────────────
+  // During 'hold' phase, control points drift sinusoidally.
+  // driftWeight 0→1 fades the drift in after curves are fully drawn.
+  function drawStrands(curveProg, driftWeight) {
     if (!strands.length) return;
-
     const totalSegs = strands.reduce((s, st) => s + st.segs.length, 0);
-    const segsDrawn = progress * totalSegs;
+    const segsDrawn = curveProg * totalSegs;
     let segIdx = 0;
 
     strands.forEach((strand, si) => {
-      // Lerp stroke weight: thin during drawing → thick once hatches arrive
-      const baseW  = strand.strokeW || 0.8;
-      const thickW = baseW * 3.2;
-      const w = baseW + (thickW - baseW) * (hatchFrac || 0);
-      const alpha = 0.35 + 0.65 * (hatchFrac || 0); // also brightens slightly
+      ctx.lineWidth   = strand.strokeW || 0.9;
+      ctx.strokeStyle = si % 2 === 0 ? C.curveA : C.curveB;
+      ctx.lineJoin    = 'round';
 
-      strand.segs.forEach((seg, sj) => {
+      strand.segs.forEach(seg => {
         if (segIdx >= segsDrawn) { segIdx++; return; }
         const segFrac = Math.min(1, segsDrawn - segIdx);
         segIdx++;
 
-        ctx.lineWidth   = w;
-        ctx.strokeStyle = `rgba(240,237,232,${si % 2 === 0 ? 0.50 * (1 - (hatchFrac||0)*0.3) + alpha*0.3 : 0.32 * (1 - (hatchFrac||0)*0.3) + alpha*0.3})`;
-        ctx.strokeStyle = si % 2 === 0 ? C.curveA : C.curveB;
-        // Override with a brightened version when hatches are in
-        if ((hatchFrac || 0) > 0.01) {
-          const a = 0.45 + 0.45 * (hatchFrac || 0);
-          ctx.strokeStyle = `rgba(240,237,232,${a.toFixed(2)})`;
+        // Lynn: interpolate between static and drifted control points
+        let cp1 = seg.cp1, cp2 = seg.cp2;
+        if (driftWeight > 0) {
+          const dcp1 = animatedCp(seg.cp1, seg, seg.driftAmp, seg.driftFreq, seg.driftPhase, globalT);
+          const dcp2 = animatedCp(seg.cp2, seg, seg.driftAmp, seg.driftFreq, seg.driftPhase + 0.8, globalT);
+          cp1 = { x: seg.cp1.x + (dcp1.x - seg.cp1.x) * driftWeight, y: seg.cp1.y + (dcp1.y - seg.cp1.y) * driftWeight };
+          cp2 = { x: seg.cp2.x + (dcp2.x - seg.cp2.x) * driftWeight, y: seg.cp2.y + (dcp2.y - seg.cp2.y) * driftWeight };
         }
 
-        ctx.beginPath();
-        ctx.moveTo(seg.p0.x, seg.p0.y);
-        const steps = 32;
-        const stepsVisible = Math.floor(segFrac * steps);
-        for (let s = 1; s <= stepsVisible; s++) {
-          const pt = cubicPt(seg.p0, seg.cp1, seg.cp2, seg.p1, s / steps);
+        ctx.beginPath(); ctx.moveTo(seg.p0.x, seg.p0.y);
+        const steps = 32, vis = Math.floor(segFrac * steps);
+        for (let s = 1; s <= vis; s++) {
+          const pt = cubicPt(seg.p0, cp1, cp2, seg.p1, s / steps);
           ctx.lineTo(pt.x, pt.y);
         }
         ctx.stroke();
 
-        // Leading tip dot during drawing phase
         if (segFrac < 1 && segFrac > 0.02) {
-          const tip = cubicPt(seg.p0, seg.cp1, seg.cp2, seg.p1, segFrac);
-          ctx.beginPath();
-          ctx.arc(tip.x, tip.y, 1.5, 0, Math.PI * 2);
-          ctx.fillStyle = 'rgba(240,237,232,0.9)';
-          ctx.fill();
+          const tip = cubicPt(seg.p0, cp1, cp2, seg.p1, segFrac);
+          ctx.beginPath(); ctx.arc(tip.x, tip.y, 1.5, 0, Math.PI * 2);
+          ctx.fillStyle = 'rgba(240,237,232,0.9)'; ctx.fill();
         }
       });
     });
   }
 
-  // ── Draw hatch linework clipped to exact bezier outline ──────────────────
-  function drawIntersections(revealFrac) {
-    const n = Math.floor(revealFrac * intCells.length);
-    for (let i = 0; i < Math.min(n, intCells.length); i++) {
+  function drawHatches(revealFrac) {
+    const n = Math.min(intCells.length, Math.ceil(revealFrac * intCells.length));
+    for (let i = 0; i < n; i++) {
       const region = intCells[i];
-      region.alpha += (region.target - region.alpha) * 0.06;
-      if (region.alpha < 0.01) continue;
+      const regionFrac = Math.min(1, Math.max(0, revealFrac * intCells.length - i));
+      region.alpha += (region.target * regionFrac - region.alpha) * 0.07;
+      if (region.alpha < 0.005) continue;
 
-      const outline = region.outline;
-      if (!outline || outline.length < 3) continue;
-
-      // Centroid of outline
-      let cx = 0, cy = 0;
-      outline.forEach(p => { cx += p.x; cy += p.y; });
-      cx /= outline.length; cy /= outline.length;
-
-      // Max radius from centroid — determines hatch sweep extent
-      let maxR = 0;
-      outline.forEach(p => {
-        const d = Math.hypot(p.x - cx, p.y - cy);
-        if (d > maxR) maxR = d;
-      });
-      const halfSpan = maxR * 1.02;
-
+      const bnd = region.boundary;
+      if (!bnd || bnd.length < 3) continue;
+      const { cx, cy, maxR } = region;
+      const halfSpan = maxR * 1.05;
       const angleRad = region.angle * Math.PI / 180;
       const cos = Math.cos(angleRad), sin = Math.sin(angleRad);
-      const spacing = region.spacing;
 
+      // ── Hatch lines clipped to the exact closed bezier boundary ──
       ctx.save();
-
-      // Clip path = exact sampled bezier outline (closed loop)
       ctx.beginPath();
-      ctx.moveTo(outline[0].x, outline[0].y);
-      for (let k = 1; k < outline.length; k++) ctx.lineTo(outline[k].x, outline[k].y);
+      ctx.moveTo(bnd[0].x, bnd[0].y);
+      for (let k = 1; k < bnd.length; k++) ctx.lineTo(bnd[k].x, bnd[k].y);
       ctx.closePath();
       ctx.clip();
 
-      // Parallel hatch lines swept across the shape
       ctx.strokeStyle = C.hatch + region.alpha + ')';
       ctx.lineWidth = 0.6;
-
-      const steps = Math.ceil((halfSpan * 2) / spacing) + 2;
-      for (let s = -steps; s <= steps; s++) {
-        const ox = cx + (-sin) * s * spacing;
-        const oy = cy + ( cos) * s * spacing;
+      const nLines = Math.ceil((halfSpan * 2) / region.spacing) + 2;
+      for (let s = -nLines; s <= nLines; s++) {
+        const ox = cx + (-sin) * s * region.spacing;
+        const oy = cy + ( cos) * s * region.spacing;
         ctx.beginPath();
         ctx.moveTo(ox + cos * -halfSpan, oy + sin * -halfSpan);
         ctx.lineTo(ox + cos *  halfSpan, oy + sin *  halfSpan);
         ctx.stroke();
       }
-
       ctx.restore();
+
+      // ── White glow inside the closed boundary ──
+      const glowTarget = region.alpha * 0.50;
+      region.glowAlpha = (region.glowAlpha || 0) + (glowTarget - (region.glowAlpha || 0)) * 0.04;
+      if (region.glowAlpha > 0.004) {
+        ctx.save();
+        ctx.beginPath();
+        ctx.moveTo(bnd[0].x, bnd[0].y);
+        for (let k = 1; k < bnd.length; k++) ctx.lineTo(bnd[k].x, bnd[k].y);
+        ctx.closePath();
+        ctx.clip();
+        const grad = ctx.createRadialGradient(cx, cy, maxR * 0.40, cx, cy, maxR);
+        grad.addColorStop(0, 'rgba(240,237,232,0)');
+        grad.addColorStop(1, `rgba(240,237,232,${region.glowAlpha.toFixed(3)})`);
+        ctx.fillStyle = grad;
+        ctx.fillRect(cx - maxR, cy - maxR, maxR * 2, maxR * 2);
+        ctx.restore();
+      }
     }
   }
 
   // ── Phase machine ─────────────────────────────────────────────────────────
-  function ease(t) { return t < 0.5 ? 2*t*t : -1+(4-2*t)*t; }  // ease-in-out
-
-  function advancePhase(now) {
+  function advancePhase(now, dt) {
     const el = now - phaseStart;
+
+    // Lynn: increment global time only during hold phase (when drift is visible)
+    if (phase === 'hold' || phase === 'fade') globalT += dt;
+
     switch (phase) {
       case 'gc':
         gcProg = ease(Math.min(1, el / DUR.gc));
-        if (el > DUR.gc) next('gm', now);
-        break;
+        if (el > DUR.gc) next('gm', now); break;
       case 'gm':
-        gcProg = 1;
-        gmProg = ease(Math.min(1, el / DUR.gm));
-        if (el > DUR.gm) next('gf', now);
-        break;
+        gcProg = 1; gmProg = ease(Math.min(1, el / DUR.gm));
+        if (el > DUR.gm) next('gf', now); break;
       case 'gf':
-        gmProg = 1;
-        gfProg = ease(Math.min(1, el / DUR.gf));
-        if (el > DUR.gf) next('nodes', now);
-        break;
+        gmProg = 1; gfProg = ease(Math.min(1, el / DUR.gf));
+        if (el > DUR.gf) next('nodes', now); break;
       case 'nodes':
-        gfProg = 1;
-        nodeReveal = Math.min(1, el / DUR.nodes);
-        if (el > DUR.nodes) { nodeReveal = 1; next('spines', now); }
-        break;
-      case 'spines':
-        spineProg = Math.min(1, el / DUR.spines);
-        if (el > DUR.spines) { spineProg = 1; next('curves', now); }
-        break;
+        gfProg = 1; nodeReveal = Math.min(1, el / DUR.nodes);
+        if (el > DUR.nodes) { nodeReveal = 1; next('curves', now); } break;
       case 'curves':
         curveProg = Math.min(1, el / DUR.curves);
-        if (el > DUR.curves) { curveProg = 1; next('intersect', now); }
-        break;
+        if (el > DUR.curves) { curveProg = 1; next('intersect', now); } break;
       case 'intersect':
         intReveal = Math.min(1, el / DUR.intersect);
-        if (el > DUR.intersect) { intReveal = 1; next('hold', now); }
-        break;
+        if (el > DUR.intersect) { intReveal = 1; next('hold', now); } break;
       case 'hold':
-        if (el > DUR.hold) next('fade', now);
-        break;
+        if (el > DUR.hold) next('fade', now); break;
       case 'fade':
         sceneAlpha = Math.max(0, 1 - ease(Math.min(1, el / DUR.fade)));
         if (el > DUR.fade) {
-          // Reset
           sceneAlpha = 1; gcProg = gmProg = gfProg = 0;
-          nodeReveal = spineProg = curveProg = intReveal = 0;
-          intCells.forEach(c => c.alpha = 0);
-          rebuildScene();
-          next('gc', now);
-        }
-        break;
+          nodeReveal = curveProg = intReveal = 0;
+          intCells.forEach(c => { c.alpha = 0; c.glowAlpha = 0; });
+          globalT = 0;
+          rebuildScene(); next('gc', now);
+        } break;
     }
   }
 
   function next(name, now) { phase = name; phaseStart = now; }
 
   // ── Render loop ───────────────────────────────────────────────────────────
+  let lastNow = performance.now();
   function render(now) {
     requestAnimationFrame(render);
+    const dt = Math.min((now - lastNow) / 1000, 0.05);
+    lastNow = now;
+
     const W = cvs.width, H = cvs.height;
     ctx.clearRect(0, 0, W, H);
+    advancePhase(now, dt);
 
-    advancePhase(now);
+    // Lynn: drift fades in during hold, stays through fade
+    const driftWeight = (phase === 'hold')
+      ? ease(Math.min(1, (now - phaseStart) / (DUR.hold * 0.4)))
+      : (phase === 'fade' ? 1 : 0);
+
+    const afterGrid   = phase !== 'gc' && phase !== 'gm' && phase !== 'gf';
+    const afterNodes  = afterGrid && phase !== 'nodes';
+    const afterCurves = afterNodes && phase !== 'curves';
 
     ctx.save();
     ctx.globalAlpha = sceneAlpha;
@@ -2333,28 +2134,17 @@ document.querySelectorAll('.fade-up').forEach(el => observer.observe(el));
     // L1 — grid (3-level subdivision)
     drawGrid(gcProg, gmProg, gfProg);
 
-    // L2 — nodes
-    if (phase !== 'gc' && phase !== 'gm' && phase !== 'gf') {
-      drawNodes(nodeReveal);
-    }
-    if (phase === 'spines' || phase === 'curves' || phase === 'intersect' || phase === 'hold' || phase === 'fade') {
-      drawNodes(1);
-    }
+    // L2 — hatch boundary glows + hatch fills (behind curves so curves read on top)
+    if (afterCurves)
+      drawHatches(intReveal);
 
-    // L3 — spines: long curves threading all nodes
-    if (phase === 'spines' || phase === 'curves' || phase === 'intersect' || phase === 'hold' || phase === 'fade') {
-      drawSpines(spineProg);
-    }
+    // L3 — bezier strands (pass through nodes, drawn over hatches)
+    if (afterNodes)
+      drawStrands(curveProg, driftWeight);
 
-    // L4 — closed shapes branching from spines (outline thickens as hatches arrive)
-    if (phase === 'curves' || phase === 'intersect' || phase === 'hold' || phase === 'fade') {
-      drawStrands(curveProg, intReveal);
-    }
-
-    // L5 — hatch fills
-    if (phase === 'intersect' || phase === 'hold' || phase === 'fade') {
-      drawIntersections(intReveal);
-    }
+    // L4 — nodes drawn LAST so they're always visible on top of curves and hatches
+    if (afterGrid)
+      drawNodes(afterNodes ? 1 : nodeReveal);
 
     ctx.restore();
   }
